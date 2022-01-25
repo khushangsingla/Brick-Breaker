@@ -1,0 +1,13 @@
+Special Helpers
+	1.L Long (Longer Paddle)
+	2.S Short (Shorter Paddle)
+	3.B Bullet (Paddle can shoot 3 bullets)
+	4.W Wrap (Paddle can pass through wall)
+	5.R Reverse (The functioning of A and D is reversed)
+	6.C Catch (Player can set direction of ball)
+	7.M Multiple Balls
+
+
+Other Info:
+ 	1.Player can set direction at start
+	2.Lives:3
