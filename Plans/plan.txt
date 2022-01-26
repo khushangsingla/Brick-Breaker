@@ -9,14 +9,14 @@ Active collectible
 numberOfLeft
 numberOfRight
 activeBullets
-collectedCollectible
+activeCollectible
 var Caught
 
-Class Vector: x,y
+(done)Class Vector: x,y
 fn Sum: for vector sum,product
 
 Class Brick: It has position of brick, dimensions, life of brick, color,
-render, => (bool)collision_with_ball(ball){reduce life by one, ball_direction_change() if life is 0, (we can return0 ) }
+render, => (bool)collisionWithBall(ball){reduce life by one, ballDirectionChange() if life is 0, (we can return0 ) }
 
 Class Ball: speed,position, dimension, color,
 render,updatePos, throwTheBall(), updateSpeedX(), reverseSpeedY(bool), slowSpeed(), normalSpeed(), caught()
@@ -24,17 +24,17 @@ render,updatePos, throwTheBall(), updateSpeedX(), reverseSpeedY(bool), slowSpeed
 Class Throw_Direction: pos1(same as pos of ball),pos2(other end)
 render,moveLeft(), moveRight()
 
-Class Paddle{Should have slanting edges}: bool Bullet, size, position, color, catch_count, stepDistance()
-render(wrap),collision_with_ball(ball,Dir,n){check for catch_count,and call corr fn in ball}, fastStepSpeed(), normalStepSpeed(), move(left(1)/right(-1), wrap), longLenght(), normalLength(), shortLength(), shootBullet(), collecting()
+Class Paddle: bool Bullet, size, position, color, catch_count, stepDistance()
+render(wrap),collisionWithBall(ball,Dir,n){check for catchCount,and call corr fn in ball}, fastStepSpeed(), normalStepSpeed(), move(left(1)/right(-1), wrap), longLenght(), normalLength(), shortLength(), shootBullet(), collecting()
 
 Class Bullet: speed,pos,color,dimension
 render(),release(),updatePos()
 
-Class enclosed_Collectible: type, Brick_index
+Class enclosed_Collectible: type, brickIndex
 (type)release()
 
 Class falling_Collectible: position,speed, type, dimension, color
-render(),reach_bottom()
+render(),reachBottom()
 
 Life lost when no ball left on screen.
 
