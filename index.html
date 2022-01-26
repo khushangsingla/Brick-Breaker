@@ -1,14 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="A game by the name of Brick Breaker which includes many other interesting features">
+    <meta name="description"
+        content="A game by the name of Brick Breaker which includes many other interesting features">
     <meta name="keywords" content="Brick Breaker, Interesting Brick Breaker">
     <title>Brick Breaker</title>
 </head>
+
 <body>
-    Let's make game here!!
+    <link rel="stylesheet" href="first_page.css">
+    <h1>Brick Breaker</h1>
+    <!-- <form action="Level Selection"></form> -->
+    <!-- <input type="radio" name="Select Level" id="level">Level 1 -->
+    <form action="play.html" type="get">
+        <div class="LevelSelection">
+            <label for="levelSelector">Select Level: </label>
+            <select name="levelSelector" id="Level">
+                <option value="level1">Level-1</option>
+                <option value="level2">Level-2</option>
+                <option value="level3">Level-3</option>
+                <option value="levelextra" disabled>More BrickGrids Coming Soon...</option>
+            </select>
+        </div>
+        
+        <br>
+        <input type="submit" name="start" class=start value="Play Game">
+    </form>
+
+
 </body>
+
 </html>

@@ -13,9 +13,7 @@ collectedCollectible
 var Caught
 
 Class Vector: x,y
-product
-
-fn Sum: for vector sum
+fn Sum: for vector sum,product
 
 Class Brick: It has position of brick, dimensions, life of brick, color,
 render, => (bool)collision_with_ball(ball){reduce life by one, ball_direction_change() if life is 0, (we can return0 ) }
