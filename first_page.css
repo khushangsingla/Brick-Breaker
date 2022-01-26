@@ -38,3 +38,6 @@ h1{
     border: rgba(33, 16, 115, 0.33);
     border-radius: 20px;
 }
+.start:hover{
+    color: rgb(101, 250, 1);
+}

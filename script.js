@@ -3,12 +3,14 @@ let ct=canvas.getContext("2D");
 // let params = (new URL(url)).searchParams;
 let params = new URLSearchParams(location.search);
 let Level=(params.get('levelSelector')[5]);
+console.log(Level);
 
 //global variables representing various constants of game
 var BULLET_SPEED=1/*val left */ ;
 var BULLET_HEIGHT=1/*val left */ ;
 var BULLET_WIDTH=1/*val left */ ;
-
+var BRICK_HEIGHT=1/*val left */;
+var BRICK_WIDTH=1/*val left */;
 //Required variables
 let bricks=[]; //array of bricks that can be broken
 let obstructions=[]; //array of unbreakable bricks
@@ -42,14 +44,11 @@ class Vector{
 class Object{
     constructor(pos=new Vector(), dmns=new Vector(), color){
         this.pos=pos;
-        // this.extendX=halfX;
-        // this.extendY=halfY;
-        this.top=pos.y-dmns.y/2.0;
-        this.bottom=pos.y+dmns.y/2.0;
-        this.left=pos.x-dmns.x/2.0;
-        this.right=pos.x+dmns.x/2.0;
+        this.top=pos.y-dmns.y/2.0;      //to use for collision check
+        this.bottom=pos.y+dmns.y/2.0;   //to use for collision check
+        this.left=pos.x-dmns.x/2.0;     //to use for collision check
+        this.right=pos.x+dmns.x/2.0;    //to use for collision check
         this.color=color;
-
     }
 }
 
@@ -60,7 +59,10 @@ class StaticObject extends Object{
 class MovingObject extends Object{
     constructor(pos=new Vector(), dmns=new Vector(), color, speed=new Vector){
         super(pos,dmns,color);
-        this.speed=speed;
+        this.velocity=speed;
+    }
+    updatePos(step_time){
+        this.pos.sum(this.speed.product(step_time));
     }
 }
 
@@ -89,5 +91,5 @@ class FallingCollectible extends MovingObject{
 }
 
 class ThrowDirection{
-    
+
 }
