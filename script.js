@@ -4,6 +4,11 @@ let ct=canvas.getContext("2D");
 let params = new URLSearchParams(location.search);
 let Level=(params.get('levelSelector')[5]);
 
+//global variables representing various constants of game
+var BULLET_SPEED=1/*val left */ ;
+var BULLET_HEIGHT=1/*val left */ ;
+var BULLET_WIDTH=1/*val left */ ;
+
 //Required variables
 let bricks=[]; //array of bricks that can be broken
 let obstructions=[]; //array of unbreakable bricks
@@ -16,7 +21,7 @@ let numberOfRight=0; //number of continuous right movements made
 let activeBullets=[]; //this is array of bullets that are released and are yet to hit a brick
 let Caught=true; //if the ball is caught by paddle, it is true
 let catchCount=0; //this has the number of catch counts available with the player
-
+let Life=3; //Total life of player
 
 //Class for vectors
 class Vector{
@@ -32,4 +37,57 @@ class Vector{
         this.x*=n;
         this.y*=n;
     }
+}
+//Class to define a few things about object
+class Object{
+    constructor(pos=new Vector(), dmns=new Vector(), color){
+        this.pos=pos;
+        // this.extendX=halfX;
+        // this.extendY=halfY;
+        this.top=pos.y-dmns.y/2.0;
+        this.bottom=pos.y+dmns.y/2.0;
+        this.left=pos.x-dmns.x/2.0;
+        this.right=pos.x+dmns.x/2.0;
+        this.color=color;
+
+    }
+}
+
+class StaticObject extends Object{
+
+}
+
+class MovingObject extends Object{
+    constructor(pos=new Vector(), dmns=new Vector(), color, speed=new Vector){
+        super(pos,dmns,color);
+        this.speed=speed;
+    }
+}
+
+class Brick extends StaticObject{
+
+}
+
+class Ball extends MovingObject{
+
+}
+
+class Paddle extends MovingObject{
+
+}
+
+class Bullet extends MovingObject{
+
+}
+
+class EnclosedCollectible{
+
+}
+
+class FallingCollectible extends MovingObject{
+
+}
+
+class ThrowDirection{
+    
 }
