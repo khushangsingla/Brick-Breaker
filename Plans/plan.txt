@@ -25,10 +25,10 @@ Class Throw_Direction: pos1(same as pos of ball),pos2(other end)
 render,moveLeft(), moveRight()
 
 Class Paddle: bool Bullet, size, position, color, catch_count, stepDistance()
-render(wrap),collisionWithBall(ball,Dir,n){check for catchCount,and call corr fn in ball}, fastStepSpeed(), normalStepSpeed(), move(left(1)/right(-1), wrap), longLenght(), normalLength(), shortLength(), shootBullet(), collecting()
+render(wrap),collisionWithBall(ball,Dir,n){check for catchCount,and call corr fn in ball}, fastStepSpeed(), normalStepSpeed(), move(left(-1)/right(1), wrap), longLenght(), normalLength(), shortLength(), shootBullet(), collecting()
 
 Class Bullet: speed,pos,color,dimension
-render(),release(),updatePos()
+render(),updatePos()
 
 Class enclosed_Collectible: type, brickIndex
 (type)release()
