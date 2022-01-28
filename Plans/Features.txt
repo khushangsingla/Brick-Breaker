@@ -1,4 +1,4 @@
-Collectibles
+Collectibles(1-6 done)
 	1.L Long (Longer Paddle)
 	2.S Short (Shorter Paddle)
 	3.B Bullet (Paddle can shoot 3 bullets)
@@ -7,7 +7,7 @@ Collectibles
 	6.C Catch (Player can set direction of ball)(3 times)
 	7.M Multiple Balls
 	
-Special Options(Available in start):
+Special Options(Available in start):(done)
 	1.F Faster Paddle *Activated using F
 	2.S Slower Ball *Activated using S
 
