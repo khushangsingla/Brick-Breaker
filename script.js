@@ -123,7 +123,7 @@ class Object{
 class StaticObject extends Object{}
 
 class MovingObject extends Object{
-    constructor(pos=new Vector(), dmns=new Vector(), color, speed=new Vector){
+    constructor(pos=new Vector(), dmns=new Vector(), color, speed=new Vector()){
         super(pos,dmns,color);
         this.velocity=speed;
     }
@@ -166,7 +166,7 @@ class Ball extends MovingObject{
         this.velocity.y*=SLOW_BALL_FACTOR;
     }
     normalSpeed(){
-        this.velocity*=SLOW_BALL_FACTOR;
+        this.velocity.product(SLOW_BALL_FACTOR);
     }
     caught(){
         this.speed=new Vector(0,0);
@@ -247,7 +247,6 @@ class Brick extends StaticObject{
                 return true;
             }
             else if(ball.velocity.y<0 && dist_along_y>0 && touch_dist_along_x-Math.abs(dist_along_x)>touch_dist_along_y-Math.abs(dist_along_y)){
-                console.log("doing")
                 ball.reverseSpeedY();
                 this.brickLife--;
                 return true;
@@ -432,6 +431,9 @@ class Ground{
     }
 }
 //initial setting up
+document.getElementById('lifeCounter').innerHTML=`Lives: ${Life}`;
+document.getElementById('scoreCounter').innerHTML=`Score: ${Score}`;
+document.getElementById('bulletCounter').innerHTML=`Number of Bullets: ${numberOfBulletsAvailable}`;
 let playArea=new Ground;
 playArea.render(ct);
 let player=new Paddle;
@@ -446,32 +448,49 @@ obstructions.push(new Brick(new Vector(3*frame_x/4,frame_y/4),2,OBSTRUCTION_COLO
 availableCollectibles.push(new EnclosedCollectible('B',0));//for testing
 function displayLostScreen(score,ctx){
     //pending fn
+    document.getElementById('play_again').style.display='block';
+    //Reset all vars
+    Level=1;
+    GAME_RUN=setInterval(update,1);
 }
 function displayWinScreen(score,ctx){
     //pending fn
+    document.getElementById('next_level').style.display='block';
+    document.getElementById('next_level').onclick=() =>{
+        Level++;
+        document.getElementById('next_level').style.display='none';
+        //Reset all vars again(bricks[],obstructions[],balls[],player)
+        player=new Paddle();
+        GAME_RUN=setInterval(update,1);
+    }
 }
 function collectibleAction(type){
     if(type=='L'){
         activeCollectible=type;
+        document.getElementById('activeCollectible').innerHTML='Long Paddle';
         player.longLength();
         collectibleTimeRemaining=10;
         // setTimeout(endActiveCollectibleAction('L'),10000);
     }
     else if(type=='S'){
         activeCollectible=type;
+        document.getElementById('activeCollectible').innerHTML='Short Paddle';
         player.shortLength();
         collectibleTimeRemaining=10;
         // setTimeout(endActiveCollectibleAction('L'),10000);
     }
     else if(type=='B'){
         numberOfBulletsAvailable+=3;
+        document.getElementById('bulletCounter').innerHTML=`Number of Bullets: ${numberOfBulletsAvailable}`;
     }
     else if(type=='T'){
         activeCollectible=type;
+        document.getElementById('activeCollectible').innerHTML='Teleport On';
         wrap=true;
         collectibleTimeRemaining=10;
     }
     else if(type=='R'){
+        document.getElementById('activeCollectible').innerHTML='Reverse Key Function';
         activeCollectible=type;
         collectibleTimeRemaining=10;
     }
@@ -487,6 +506,7 @@ function collectibleAction(type){
 }
 function endActiveCollectibleAction(type){
     activeCollectible=null;
+    document.getElementById('activeCollectible').innerHTML='';
     if(type=='L' || type=='S'){
         player.normalLength();
         return;
@@ -506,10 +526,14 @@ function update(){
     if(activeFeature!=null && featureTimeRemaining<=0){
         if(activeFeature=='F'){
             player.normalStepSpeed();
+            activeFeature=null;
+            document.getElementById('activeFeature').innerHTML='';
         }
         if(activeFeature=='S'){
             for(let i=0;i<balls.length;i++){
                 balls[i].normalSpeed();
+                activeFeature=null;
+                document.getElementById('activeFeature').innerHTML='';
             }
         }
     }
@@ -555,7 +579,10 @@ function update(){
             continue;
         }
         for(let j=0;j<bricks.length;j++){
-            if(bricks[j].hitByBullet(activeBullets[i])){
+            let temp=bricks[j].brickLife
+            if(temp!=0 && bricks[j].hitByBullet(activeBullets[i])){
+                Score+=temp;
+                document.getElementById('scoreCounter').innerHTML=`Score: ${Score}`;
                 activeBullets.splice(i,1);
                 i--;
                 continue;
@@ -589,6 +616,7 @@ function update(){
     // check if balls finished
     if(balls.length==0){
         Life--;
+        document.getElementById('lifeCounter').innerHTML=`Lives: ${Life}`;
         balls.push(new Ball(new Vector(player.pos.x,player.top-BALL_RADIUS),new Vector(0,0)));
         caught=true;
         caughtBallIndex=0;
@@ -613,6 +641,7 @@ function update(){
                 // bricks[j].render(ct);
                 if(bricks[j].isBallColliding(balls[i])){
                     Score++;
+                    document.getElementById('scoreCounter').innerHTML=`Score: ${Score}`;
                     if(bricks[j].brickLife==0){
                         for(let k=0;k<availableCollectibles.length;k++){
                             if(availableCollectibles[k].brickIndex==j){
@@ -646,6 +675,7 @@ function keyPressed(code){
         else if(numberOfBulletsAvailable!=0){
             activeBullets.push(new Bullet(new Vector(player.pos.x,player.pos.y)));
             numberOfBulletsAvailable--;
+            document.getElementById('bulletCounter').innerHTML=`Number of Bullets: ${numberOfBulletsAvailable}`;
         }
     }
     else if(code=='a' || code=='A' || code=='ArrowLeft'){
@@ -682,16 +712,21 @@ function keyPressed(code){
             throwLine.moveRight();
         }
     }
-    else if((code=='f' || code=='F') && document.getElementById('fast_paddle_button').disabled==false){
+    else if((code=='f' || code=='F') && document.getElementById('fast_paddle_button').disabled==false && activeFeature==null){
         player.fastStepSpeed();
         featureTimeRemaining=10;
         activeFeature='F';
-        document.getElementById('fast_paddle_button').disabled=true;;
+        document.getElementById('activeFeature').innerHTML='Fast Paddle';
+
+        document.getElementById('fast_paddle_button').disabled=true;
     }
-    else if((code=='s' || code=='S') && document.getElementById('slow_ball_button').disabled==false){
+    else if((code=='s' || code=='S') && document.getElementById('slow_ball_button').disabled==false && activeFeature==null){
         for(let i=0;i<balls.length;i++){
             balls[i].slowSpeed();
         }
+        featureTimeRemaining=10;
+        activeFeature='S';
+        document.getElementById('activeFeature').innerHTML='Slow Ball'
         document.getElementById('slow_ball_button').disabled=true;
     }
 }

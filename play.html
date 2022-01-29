@@ -9,7 +9,45 @@
 <body>
     <link rel="stylesheet" href="game_design.css">
     <div id="game_area"><canvas id="GameCanvas" style="border-style:solid" >Canvas Not Supported</canvas></div>
+    <div class="scorecard">
+        
+        <a href="instructions.html">
+        <input type="submit" name="instructions" class=instructions value="Instructions">
+        </a> 
     
-    <script src="script.js"></script>
+    <h1 id="lifeCounter">
+        Lives : 
+    </h1>
+    <h1 id="scoreCounter">
+        Score :
+        <br>
+    </h1>       
+
+    <h1 id='bulletCounter'>
+        Number of bullets :
+    </h1>        
+    <h1 id='activeFeature'>
+        
+    </h1>
+    <h1 id='activeCollectible'>
+        
+    </h1>
+    <br>
+    <br>
+    <button id="fast_paddle_button">Fast Paddle</button>
+    <br>
+    <br>
+    <br>
+    <button id="slow_ball_button">Slow Ball</button>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <button id="next_level" hidden>Next Level</button>
+    <button id="play_again" hidden>Play Again</button>
+    </div>
+   <script src="script.js">
+    </script>
 </body>
 </html>
