@@ -27,6 +27,7 @@ const BRICK_HEIGHT=0.04*frame_x;
 const BRICK_WIDTH=0.08*frame_x;
 let STRONG_BRICK_COLOR='rgb(255,0,0)';
 let WEAK_BRICK_COLOR='rgb(155,0,0)';
+let OBSTRUCTION_COLOR='rgb(30,30,30)'
 //Collectible(Falling)
 const COLLECTIBLE_RADIUS=0.015*frame_x;
 const COLLECTIBLE_COLOR="rgb(256,0,0)";
@@ -41,7 +42,7 @@ const LONG_PADDLE_WIDTH=0.15*frame_x;
 const SHORT_PADDLE_WIDTH=0.07*frame_x;
 const PADDLE_COLOR='rgb(0,0,255)';
 //Ball
-const BALL_SPEED_Y=frame_y/100;
+const BALL_SPEED_Y=frame_y/300;
 const SLOW_BALL_FACTOR=0.8;
 const BALL_RADIUS=0.01*frame_x;
 const BALL_COLOR_OUT='rgb(20,20,20)';
@@ -67,10 +68,10 @@ let activeBullets=[]; //this is array of bullets that are released and are yet t
 let numberOfBulletsAvailable=0; //this is number of bullets available with player
 let caught=true; //if the ball is caught by paddle, it is true
 let caughtBallIndex=0;
-let catchCount=4; //this has the number of catch counts available with the player
+let catchCount=0; //this has the number of catch counts available with the player
 let Life=3; //Total life of player
 let Score=0; //Total Score
-let wrap=true;
+let wrap=false;
 //Class for vectors
 class Vector{
     constructor(x,y){
@@ -190,37 +191,76 @@ class Ball extends MovingObject{
         array_balls.push(new Ball(this.pos.getSum(new Vector(BALL_RADIUS,0)),this.velocity.getSum(new Vector(BALL_DISPERSAL_SPEED,0))));
     }
 }
-
+class Bullet extends MovingObject{
+    constructor(pos=new Vector()){
+        super(pos,new Vector(BULLET_WIDTH,BULLET_HEIGHT),BULLET_COLOR,new Vector(0,-1*BULLET_SPEED));
+    }
+}
 class Brick extends StaticObject{
     constructor(pos=new Vector(), brick_lives, color){
         super(pos,new Vector(BRICK_WIDTH,BRICK_HEIGHT),color);
         this.brickLife=brick_lives;
     }
-    isBallColliding(ball=new Ball()){
-        if(ball.right >= this.left && ball.left <= this.right && ball.bottom >= this.top && ball.top <= this.bottom){
-            this.brickLife-=1;
-            let dist_along_x=Math.abs(ball.pos.x-this.pos.x);
-            let dist_along_y=Math.abs(ball.pos.y-this.pos.y);
-            let touch_dist_along_x=(ball.size.x+this.size.x)/2.0;
-            let touch_dist_along_y=(ball.size.y+this.size.y)/2.0;
-            if(touch_dist_along_x-dist_along_x<touch_dist_along_y-dist_along_y){
-                ball.updateSpeedX(-2*ball.velocity.x);
-            }
-            else{
-                ball.reverseSpeedY();
-            }
+    hitByBullet(bullet=new Bullet()){
+        if(bullet.top<=this.bottom && this.left<bullet.right && this.right>bullet.left){
+            this.brickLife=0;
             return true;
         }
-        else{
-            return false;
+        return false;
+    }
+    isBallColliding(ball=new Ball()){
+        // if(ball.right >= this.left && ball.left <= this.right && ball.bottom >= this.top && ball.top <= this.bottom){
+        //     this.brickLife-=1;
+        //     let dist_along_x=Math.abs(ball.pos.x-this.pos.x);
+        //     let dist_along_y=Math.abs(ball.pos.y-this.pos.y);
+        //     let touch_dist_along_x=(ball.size.x+this.size.x)/2.0;
+        //     let touch_dist_along_y=(ball.size.y+this.size.y)/2.0;
+        //     if(touch_dist_along_x-dist_along_x<touch_dist_along_y-dist_along_y){
+        //         ball.updateSpeedX(-2*ball.velocity.x);
+        //     }
+        //     else{
+        //         ball.reverseSpeedY();
+        //     }
+        //     return true;
+        // }
+        // else{
+        //     return false;
+        // }
+        let dist_along_x=(ball.pos.x-this.pos.x);
+        let dist_along_y=(ball.pos.y-this.pos.y);
+        let touch_dist_along_x=(ball.size.x+this.size.x)/2.0;
+        let touch_dist_along_y=(ball.size.y+this.size.y)/2.0;
+        if(ball.right >= this.left && ball.left <= this.right && ball.bottom >= this.top && ball.top <= this.bottom){
+            if(ball.velocity.x>0 && dist_along_x<0 && touch_dist_along_x-Math.abs(dist_along_x)<touch_dist_along_y-Math.abs(dist_along_y)){
+                ball.updateSpeedX(-2*ball.velocity.x);
+                this.brickLife--;
+                return true;
+            }
+            else if(ball.velocity.x<0 && dist_along_x>0 && touch_dist_along_x-Math.abs(dist_along_x)<touch_dist_along_y-Math.abs(dist_along_y)){
+                ball.updateSpeedX(-2*ball.velocity.x);
+                this.brickLife--;
+                return true;
+            }
+            else if(ball.velocity.y>0 && dist_along_y<0 && touch_dist_along_x-Math.abs(dist_along_x)>touch_dist_along_y-Math.abs(dist_along_y)){
+                ball.reverseSpeedY();
+                this.brickLife--;
+                return true;
+            }
+            else if(ball.velocity.y<0 && dist_along_y>0 && touch_dist_along_x-Math.abs(dist_along_x)>touch_dist_along_y-Math.abs(dist_along_y)){
+                console.log("doing")
+                ball.reverseSpeedY();
+                this.brickLife--;
+                return true;
+            }
         }
+        return false;
     }
     render(ctx){
         if(this.color==WEAK_BRICK_COLOR){
             ctx.beginPath();
             let grad=ctx.createRadialGradient(this.pos.x,this.pos.y,0,this.pos.x,this.pos.y,Math.max(this.size.x/2.0,this.size.y/2.0));
             grad.addColorStop(0,'rgb(155,70,70)');
-            grad.addColorStop(1,color);
+            grad.addColorStop(1,this.color);
             ctx.fillStyle=grad;
             ctx.fillRect(this.left,this.top,this.size.x,this.size.y);
             ctx.closePath();
@@ -252,10 +292,17 @@ class Brick extends StaticObject{
                 ctx.closePath();
             }
         }
+        if(this.color==OBSTRUCTION_COLOR){
+            ctx.beginPath();
+            let grad=ctx.createRadialGradient(this.pos.x,this.pos.y,0,this.pos.x,this.pos.y,Math.max(this.size.x/2.0,this.size.y/2.0));
+            grad.addColorStop(0,'rgb(120,120,120)');
+            grad.addColorStop(1,this.color);
+            ctx.fillStyle=grad;
+            ctx.fillRect(this.left,this.top,this.size.x,this.size.y);
+            ctx.closePath();
+        }
     }
 }
-
-
 class Paddle extends StaticObject{
     constructor(){
         super(new Vector(WINDOW_X/2.0,WINDOW_Y-PADDLE_HEIGHT/2.0-frame_y*0.005),new Vector(PADDLE_WIDTH,PADDLE_HEIGHT),PADDLE_COLOR);
@@ -315,20 +362,12 @@ class Paddle extends StaticObject{
         }
     }
 }
-
-class Bullet extends MovingObject{
-    constructor(pos=new Vector()){
-        super(pos,new Vector(BULLET_WIDTH,BULLET_HEIGHT),BULLET_COLOR,new Vector(0,-1*BULLET_SPEED));
-    }
-}
-
 class EnclosedCollectible{
     constructor(type,idx){
         this.type=type;
         this.brickIndex=idx;
     }
 }
-
 class FallingCollectible extends MovingObject{
     constructor(pos=new Vector(),type){
         super(pos,new Vector(2*COLLECTIBLE_RADIUS,2*COLLECTIBLE_RADIUS),COLLECTIBLE_COLOR,new Vector(0,COLLECTIBLE_SPEED));
@@ -358,7 +397,6 @@ class FallingCollectible extends MovingObject{
         ctx.closePath();
     }
 }
-
 class ThrowDirection{
     constructor(start_pos=new Vector()){
         this.startPosition=start_pos;
@@ -393,8 +431,6 @@ class Ground{
         // console.log("doing");
     }
 }
-
-
 //initial setting up
 let playArea=new Ground;
 playArea.render(ct);
@@ -403,10 +439,11 @@ player.render(ct);
 balls.push(new Ball(new Vector(player.pos.x,player.top-BALL_RADIUS),new Vector(0,0)));
 balls[0].render(ct);
 let throwLine=new ThrowDirection(balls[0].pos);
-// bricks.push(new Brick(new Vector(frame_x/2,frame_y/2),2,STRONG_BRICK_COLOR));//for testing
-// bricks.push(new Brick(new Vector(frame_x/4,frame_y/4),2,STRONG_BRICK_COLOR));//for testing
-// availableCollectibles.push(new EnclosedCollectible('M',0));//for testing
-
+//testing objects
+bricks.push(new Brick(new Vector(frame_x/2,3*frame_y/4),2,STRONG_BRICK_COLOR));//for testing
+bricks.push(new Brick(new Vector(frame_x/4,frame_y/4),2,STRONG_BRICK_COLOR));//for testing
+obstructions.push(new Brick(new Vector(3*frame_x/4,frame_y/4),2,OBSTRUCTION_COLOR));//for testing
+availableCollectibles.push(new EnclosedCollectible('B',0));//for testing
 function displayLostScreen(score,ctx){
     //pending fn
 }
@@ -429,7 +466,7 @@ function collectibleAction(type){
     else if(type=='B'){
         numberOfBulletsAvailable+=3;
     }
-    else if(type=='W'){
+    else if(type=='T'){
         activeCollectible=type;
         wrap=true;
         collectibleTimeRemaining=10;
@@ -454,12 +491,11 @@ function endActiveCollectibleAction(type){
         player.normalLength();
         return;
     }
-    if(type=='W'){
+    if(type=='T'){
         wrap=false;
     }
 }
 function update(){
-    console.log(player.stepDistance.x)
     //timers
     collectibleTimeRemaining-=0.01;
     featureTimeRemaining-=0.01;
@@ -487,6 +523,9 @@ function update(){
             LivingBricks++;
         }
     }
+    for(let j=0;j<obstructions.length;j++){
+        obstructions[j].render(ct);
+    }
     for(let i=0;i<fallingCollectibles.length;i++){
         fallingCollectibles[i].render(ct);
     }
@@ -506,8 +545,29 @@ function update(){
         clearInterval(GAME_RUN);
         displayLostScreen(Score,ct);
     }
+    //most important updates,before return is called by catching part
     for(let i=0;i<activeBullets.length;i++){
         activeBullets[i].updatePos();
+        if(activeBullets[i].bottom<=0){
+            console.log('doing');
+            activeBullets.splice(i,1);
+            i--;
+            continue;
+        }
+        for(let j=0;j<bricks.length;j++){
+            if(bricks[j].hitByBullet(activeBullets[i])){
+                activeBullets.splice(i,1);
+                i--;
+                continue;
+            }
+        }
+        for(let j=0;j<obstructions.length;j++){
+            if(obstructions[j].hitByBullet(activeBullets[i])){
+                activeBullets.splice(i,1);
+                i--;
+                continue;
+            }
+        }
     }
     for(let i=0;i<fallingCollectibles.length;i++){
         if(fallingCollectibles[i].reachedBottom()){
@@ -535,13 +595,12 @@ function update(){
         throwLine.startPosition=balls[0].pos;
         throwLine.angle=0;
     }
-    //updating data
+    //caught function use
     if(caught){
-        // console.log('doign');
         throwLine.render(ct);
         return;
     }
-    
+    //updating data for balls
     for(let i=0;i<balls.length;i++){
         if(balls[i].top>=WINDOW_Y){
             balls.splice(i,1);
@@ -566,12 +625,12 @@ function update(){
                 }
             }
         }
-        // for(let j=0;j<obstructions.length;j++){
-        //     obstructions[j].render(ct);
-        //     obstructions[j].brickLife(balls[i]);
-        // }
+        for(let j=0;j<obstructions.length;j++){
+            obstructions[j].isBallColliding(balls[i]);
+        }
         balls[i].updatePos();
     }
+
     if(caught){
         // console.log('doign');
         throwLine.render(ct,balls[caughtBallIndex]);    
@@ -584,7 +643,7 @@ function keyPressed(code){
         if(caught){
             balls[caughtBallIndex].throwTheBall(throwLine);
         }
-        if(numberOfBulletsAvailable!=0){
+        else if(numberOfBulletsAvailable!=0){
             activeBullets.push(new Bullet(new Vector(player.pos.x,player.pos.y)));
             numberOfBulletsAvailable--;
         }
@@ -623,15 +682,17 @@ function keyPressed(code){
             throwLine.moveRight();
         }
     }
-    else if(code=='f' || code=='F'){
+    else if((code=='f' || code=='F') && document.getElementById('fast_paddle_button').disabled==false){
         player.fastStepSpeed();
         featureTimeRemaining=10;
         activeFeature='F';
+        document.getElementById('fast_paddle_button').disabled=true;;
     }
-    else if(code=='s' || code=='S'){
+    else if((code=='s' || code=='S') && document.getElementById('slow_ball_button').disabled==false){
         for(let i=0;i<balls.length;i++){
             balls[i].slowSpeed();
         }
+        document.getElementById('slow_ball_button').disabled=true;
     }
 }
 const GAME_RUN=setInterval(update,1);
