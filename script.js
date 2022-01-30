@@ -1,8 +1,14 @@
+// import leaderboard.json as leaderboard
+// import * as fs from 'fs';
+// fs = require('fs');
+// var name = 'leaderboard.json';
+// var LEADERBOARD = JSON.parse(fs.readFileSync(name).toString());
 var canvas=document.getElementById("GameCanvas");
 var ct=canvas.getContext("2d");
 // let params = (new URL(url)).searchParams;
-// let params = new URLSearchParams(location.search);
-// let Level=(params.get('levelSelector')[5]);
+let params = new URLSearchParams(location.search);
+let player_name=(params.get('name'));
+console.log(player_name);
 Level=1;
 let frame_x=document.getElementById("game_area").offsetWidth;
 let frame_y=document.getElementById("game_area").offsetHeight;
@@ -527,7 +533,50 @@ function displayLostScreen(score,ctx){
     clearInterval(GAME_RUN);
     document.getElementById('play_again').style.display='block';
     playArea.render(ct);
-
+    fetch('leaderboard.json').then((response)=>{
+        response.text().then((text)=>{
+            let LEADERBOARD=JSON.parse(text);
+            if(Score>=LEADERBOARD["5"]){
+                LEADERBOARD["5"]={player_name:`${Score}`};
+                if(Score>=LEADERBOARD["4"]){
+                    LEADERBOARD["5"]=LEADERBOARD["4"];
+                    LEADERBOARD["4"]={player_name:`${Score}`};
+                    if(Score>=LEADERBOARD["3"]){
+                        LEADERBOARD["4"]=LEADERBOARD["3"];
+                        LEADERBOARD["3"]={player_name:`${Score}`};
+                        if(Score>=LEADERBOARD["2"]){
+                            LEADERBOARD["3"]=LEADERBOARD[2];
+                            LEADERBOARD["2"]={player_name:`${Score}`};
+                            if(Score>=LEADERBOARD["1"]){
+                                LEADERBOARD["2"]=LEADERBOARD["1"];
+                                LEADERBOARD["1"]={player_name:`${Score}`};
+                            }
+                        }
+                    }
+                }
+            }        
+        })
+    })
+    // if(Score>=LEADERBOARD["5"]){
+    //     LEADERBOARD["5"]={player_name:`${Score}`};
+    //     if(Score>=LEADERBOARD["4"]){
+    //         LEADERBOARD["5"]=LEADERBOARD["4"];
+    //         LEADERBOARD["4"]={player_name:`${Score}`};
+    //         if(Score>=LEADERBOARD["3"]){
+    //             LEADERBOARD["4"]=LEADERBOARD["3"];
+    //             LEADERBOARD["3"]={player_name:`${Score}`};
+    //             if(Score>=LEADERBOARD["2"]){
+    //                 LEADERBOARD["3"]=LEADERBOARD[2];
+    //                 LEADERBOARD["2"]={player_name:`${Score}`};
+    //                 if(Score>=LEADERBOARD["1"]){
+    //                     LEADERBOARD["2"]=LEADERBOARD["1"];
+    //                     LEADERBOARD["1"]={player_name:`${Score}`};
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+    // fs.writeFileSync(name,JSON.stringify(LEADERBOARD));
     //Reset all vars
     document.getElementById('play_again').onclick=() =>{
         // Level=1;
@@ -590,6 +639,9 @@ function collectibleAction(type){
         for(let i=0;i<number_of_balls;i++){
             balls[i].disperse(balls);
         }
+    }
+    else if(type=='H'){
+        Life++;
     }
 }
 function endActiveCollectibleAction(type){

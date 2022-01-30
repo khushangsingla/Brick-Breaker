@@ -12,25 +12,26 @@ h1{
     text-align: center;
     font-size: 6vw;
     font-style: italic;
-    color:rgba(68, 2, 2, 0.84);  
+    color:rgb(255, 251, 0);  
 }
-.LevelSelection{
+.player_name{
     position: absolute;
-    margin-top: 28vh;
+    margin-top: -10vh;
     margin-left: 23vw;
     font-size: 3vw;
-    color:rgb(255, 0, 0);
+    color:white;
+
 }
-#Level{
+#name{
     font-size: 2.5vw;
-    color:rgb(255, 0, 0);
-    background-color: rgba(89, 126, 145, 0.42);
+    color:rgba(28, 247, 46, 0.979);
+    background-color: rgba(45, 1, 255, 0.61);
     border: rgba(45, 1, 255, 0.61);
     border-radius: 10px;
 }
 .start{
     /* position: absolute; */
-    margin-top: 57vh;
+    margin-top: 30vh;
     margin-left: 77vw;
     font-size: 4vw;
     color: #ff0000e8;
@@ -40,4 +41,20 @@ h1{
 }
 .start:hover{
     color: rgb(101, 250, 1);
+}
+
+.instructions{
+    margin-top: 30vh;
+    margin-left: 77vw;
+    background-color:rgb(78, 250, 78) ;
+    color:black;
+    font-size: 2vw;
+    font-family: cursive;
+    
+   
+    
+}
+
+.instructions:hover{
+   background-color: rgb(255, 251, 0);
 }
