@@ -1,15 +1,17 @@
 var canvas=document.getElementById("GameCanvas");
 var ct=canvas.getContext("2d");
 // let params = (new URL(url)).searchParams;
-let params = new URLSearchParams(location.search);
-let Level=(params.get('levelSelector')[5]);
-// console.log("hi");
+// let params = new URLSearchParams(location.search);
+// let Level=(params.get('levelSelector')[5]);
+Level=1;
 let frame_x=document.getElementById("game_area").offsetWidth;
 let frame_y=document.getElementById("game_area").offsetHeight;
 if(frame_x>1.5*frame_y){frame_x=1.5*frame_y;}
 else{frame_y=2*frame_x/3.0}
 ct.canvas.width  = frame_x;
 ct.canvas.height = frame_y;
+let UnitUsed=frame_x/100;
+// let YUnit=frame_y/100;
 
 //global variables representing various constants of game
 //Window
@@ -23,26 +25,26 @@ const BULLET_HEIGHT=0.01*frame_x ;
 const BULLET_WIDTH=0.0075*frame_x ;
 const BULLET_COLOR="rgb(256,0,0)";
 //Brick
-const BRICK_HEIGHT=0.04*frame_x;
-const BRICK_WIDTH=0.08*frame_x;
-let STRONG_BRICK_COLOR='rgb(255,0,0)';
-let WEAK_BRICK_COLOR='rgb(155,0,0)';
-let OBSTRUCTION_COLOR='rgb(30,30,30)'
+const BRICK_HEIGHT=0.049*frame_x;
+const BRICK_WIDTH=0.099*frame_x;
+const STRONG_BRICK_COLOR='rgb(255,0,0)';
+const WEAK_BRICK_COLOR='rgb(155,0,0)';
+const OBSTRUCTION_COLOR='rgb(30,30,30)';
 //Collectible(Falling)
 const COLLECTIBLE_RADIUS=0.015*frame_x;
 const COLLECTIBLE_COLOR="rgb(256,0,0)";
-const COLLECTIBLE_SPEED=0.004*frame_y;
-const COLLECTIBLE_TYPE_COLOR='rgb(0,255,0)';
+const COLLECTIBLE_SPEED=0.002*frame_y;
+const COLLECTIBLE_TYPE_COLOR='rgb(0,0,0)';
 //Paddle
 const PADDLE_HEIGHT=0.02*frame_y;
 const PADDLE_WIDTH=0.1*frame_x;
-const PADDLE_STEP_SPEED=0.005*frame_x;
-const FAST_PADDLE_STEP_SPEED=0.01*frame_x;
+const PADDLE_STEP_SPEED=0.02*frame_x;
+const FAST_PADDLE_STEP_SPEED=0.025*frame_x;
 const LONG_PADDLE_WIDTH=0.15*frame_x;
 const SHORT_PADDLE_WIDTH=0.07*frame_x;
 const PADDLE_COLOR='rgb(0,0,255)';
 //Ball
-const BALL_SPEED_Y=frame_y/300;
+const BALL_SPEED_Y=frame_y/400;
 const SLOW_BALL_FACTOR=0.8;
 const BALL_RADIUS=0.01*frame_x;
 const BALL_COLOR_OUT='rgb(20,20,20)';
@@ -50,13 +52,26 @@ const BALL_COLOR_IN='rgb(180,180,180)';
 const BALL_DISPERSAL_SPEED=0.2*BALL_SPEED_Y;
 //throw direction
 const THROW_LINE_LENGTH=0.05*frame_y;
-const MAX_THROW_ANGLE=80;//in degrees;
+const MAX_THROW_ANGLE=70;//in degrees;
 const THROW_LINE_COLOR='rgb(255,0,0)';
+// //Level Configurations
+let BRICK_GRIDS=[];
+let OBSTRUCTION_GRIDS=[];
+let COLLECTIBLE_GRIDS=[];
+// // Level1
+let LEVEL_1_BRICK_ARRAY=[];
+let LEVEL_1_OBSTRUCTIONS_ARRAY=[];
+let LEVEL_1_COLLECTIBLES_ARRAY=[];
+//Level2
+let LEVEL_2_OBSTRUCTIONS_ARRAY=[];
+let LEVEL_2_COLLECTIBLES_ARRAY=[];
+let LEVEL_2_BRICK_ARRAY=[];
 //Required variables
-let bricks=[]; //array of bricks that can be broken
-let obstructions=[]; //array of unbreakable bricks
+let ScoreIncrement=1;
+let bricks=LEVEL_1_BRICK_ARRAY; //array of bricks that can be broken
+let obstructions=LEVEL_1_OBSTRUCTIONS_ARRAY; //array of unbreakable bricks
 let balls=[]; //array of balls in the game
-let availableCollectibles=[]; //array of collectibles that do exist in the game
+let availableCollectibles=LEVEL_1_COLLECTIBLES_ARRAY; //array of collectibles that do exist in the game
 let fallingCollectibles=[]; //array of collectibles that are released and are falling
 let activeCollectible=null; //if there's an active collectible, it's initial will be stored here
 let collectibleTimeRemaining=0;
@@ -69,7 +84,7 @@ let numberOfBulletsAvailable=0; //this is number of bullets available with playe
 let caught=true; //if the ball is caught by paddle, it is true
 let caughtBallIndex=0;
 let catchCount=0; //this has the number of catch counts available with the player
-let Life=3; //Total life of player
+let Life=1; //Total life of player
 let Score=0; //Total Score
 let wrap=false;
 //Class for vectors
@@ -166,7 +181,7 @@ class Ball extends MovingObject{
         this.velocity.y*=SLOW_BALL_FACTOR;
     }
     normalSpeed(){
-        this.velocity.product(SLOW_BALL_FACTOR);
+        this.velocity.product(1/SLOW_BALL_FACTOR);
     }
     caught(){
         this.speed=new Vector(0,0);
@@ -347,6 +362,7 @@ class Paddle extends StaticObject{
     }
     collisionWithBall(ball=new Ball(),lineOfThrow=new ThrowDirection()){
         if(ball.bottom>=this.top && ball.pos.y<this.top&& ball.left<this.right && ball.right>this.left && ball.velocity.y>0){
+            ScoreIncrement=1;
             if(!catchCount){
                 ball.reverseSpeedY();
                 ball.updateSpeedX((numberOfRight-numberOfLeft)*0.001);
@@ -383,7 +399,7 @@ class FallingCollectible extends MovingObject{
     }
     render(ctx){
         ctx.beginPath();
-        let grad=ctx.createRadialGradient(this.pos.x,this.pos.y,COLLECTIBLE_RADIUS*0.8,this.pos.x,this.pos.y,COLLECTIBLE_RADIUS)
+        let grad=ctx.createRadialGradient(this.pos.x,this.pos.y,COLLECTIBLE_RADIUS*0.6,this.pos.x,this.pos.y,COLLECTIBLE_RADIUS)
         grad.addColorStop(0,WINDOW_COLOR);
         grad.addColorStop(1,COLLECTIBLE_COLOR);
         ctx.fillStyle=grad;
@@ -392,7 +408,8 @@ class FallingCollectible extends MovingObject{
         ctx.closePath();
         ctx.beginPath();
         ctx.fillStyle=COLLECTIBLE_TYPE_COLOR;
-        ctx.fillText(this.type,this.pos.x,this.pos.y,1.4*COLLECTIBLE_RADIUS);
+        ctx.font=`${1.2*COLLECTIBLE_RADIUS}px Arial`;
+        ctx.fillText(this.type,this.pos.x-0.4*COLLECTIBLE_RADIUS,this.pos.y+0.4*COLLECTIBLE_RADIUS,1.4*COLLECTIBLE_RADIUS);
         ctx.closePath();
     }
 }
@@ -430,38 +447,109 @@ class Ground{
         // console.log("doing");
     }
 }
+//array making for level 1
+for(let i=0;i<9;i++){
+    for(let j=0;j<4;j++){
+        LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*i+10)*UnitUsed),((5*j+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    }
+}
+for(let i=2;i<7;i++){
+    LEVEL_1_BRICK_ARRAY[4*i].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[4*i].color=STRONG_BRICK_COLOR;
+}
+LEVEL_1_OBSTRUCTIONS_ARRAY.push(LEVEL_1_BRICK_ARRAY[28],LEVEL_1_BRICK_ARRAY[19],LEVEL_1_BRICK_ARRAY[4]);
+for(let i=0;i<3;i++){
+    LEVEL_1_OBSTRUCTIONS_ARRAY[i].color=OBSTRUCTION_COLOR;
+}
+LEVEL_1_BRICK_ARRAY.splice(28,1);
+LEVEL_1_BRICK_ARRAY.splice(19,1);
+LEVEL_1_BRICK_ARRAY.splice(4,1);
+LEVEL_1_COLLECTIBLES_ARRAY.push(new EnclosedCollectible('M',14));
+//array making for level 2
+for(let i=0;i<9;i++){
+    for(let j=0;j<4;j++){
+        LEVEL_2_BRICK_ARRAY.push(new Brick(new Vector(((10*i+10)*UnitUsed),((5*j+2.5+10)*UnitUsed)),2,STRONG_BRICK_COLOR));
+    }
+}
+for(let i=2;i<7;i++){
+    LEVEL_2_BRICK_ARRAY[4*i].brickLife=1;
+    LEVEL_2_BRICK_ARRAY[4*i].color=WEAK_BRICK_COLOR;
+}
+LEVEL_2_OBSTRUCTIONS_ARRAY.push(LEVEL_2_BRICK_ARRAY[28],LEVEL_2_BRICK_ARRAY[19],LEVEL_2_BRICK_ARRAY[4]);
+for(let i=0;i<3;i++){
+    LEVEL_2_OBSTRUCTIONS_ARRAY[i].color=OBSTRUCTION_COLOR;
+}
+LEVEL_2_BRICK_ARRAY.splice(28,1);
+LEVEL_2_BRICK_ARRAY.splice(19,1);
+LEVEL_2_BRICK_ARRAY.splice(4,1);
+//
+BRICK_GRIDS.push(LEVEL_1_BRICK_ARRAY,LEVEL_2_BRICK_ARRAY);
+OBSTRUCTION_GRIDS.push(LEVEL_1_OBSTRUCTIONS_ARRAY,LEVEL_2_OBSTRUCTIONS_ARRAY);
 //initial setting up
 document.getElementById('lifeCounter').innerHTML=`Lives: ${Life}`;
 document.getElementById('scoreCounter').innerHTML=`Score: ${Score}`;
 document.getElementById('bulletCounter').innerHTML=`Number of Bullets: ${numberOfBulletsAvailable}`;
-let playArea=new Ground;
+let playArea=new Ground();
 playArea.render(ct);
-let player=new Paddle;
-player.render(ct);
-balls.push(new Ball(new Vector(player.pos.x,player.top-BALL_RADIUS),new Vector(0,0)));
-balls[0].render(ct);
+let player=new Paddle();
+balls.push(new Ball(new Vector(player.pos.x,player.top-BALL_RADIUS),new Vector(0,0)))
 let throwLine=new ThrowDirection(balls[0].pos);
-//testing objects
-bricks.push(new Brick(new Vector(frame_x/2,3*frame_y/4),2,STRONG_BRICK_COLOR));//for testing
-bricks.push(new Brick(new Vector(frame_x/4,frame_y/4),2,STRONG_BRICK_COLOR));//for testing
-obstructions.push(new Brick(new Vector(3*frame_x/4,frame_y/4),2,OBSTRUCTION_COLOR));//for testing
-availableCollectibles.push(new EnclosedCollectible('B',0));//for testing
+var GAME_RUN=setInterval(update,1);
+// testing objects
+// bricks.push(new Brick(new Vector(frame_x/2,3*frame_y/4),2,STRONG_BRICK_COLOR));//for testing
+// bricks.push(new Brick(new Vector(frame_x/4,frame_y/4),2,STRONG_BRICK_COLOR));//for testing
+// obstructions.push(new Brick(new Vector(3*frame_x/4,frame_y/4),2,OBSTRUCTION_COLOR));//for testing
+// availableCollectibles.push(new EnclosedCollectible('B',0));//for testing
+function startGame(){
+    ScoreIncrement=1;
+    player=new Paddle();
+    bricks=BRICK_GRIDS[Level-1];
+    obstructions=OBSTRUCTION_GRIDS[Level-1];
+    Collectibles=COLLECTIBLE_GRIDS[Level-1];
+    balls=[new Ball(new Vector(player.pos.x,player.top-BALL_RADIUS),new Vector(0,0))];
+    availableCollectibles=[];
+    fallingCollectibles=[];
+    activeCollectible=null;
+    collectibleTimeRemaining=0;
+    featureTimeRemaining=0;
+    activeFeature=null;
+    numberOfLeft=0;
+    numberOfRight=0;
+    activeBullets=[];
+    caught=true;
+    caughtBallIndex=0;
+    wrap=false;
+    throwLine=new ThrowDirection(balls[0].pos)
+    GAME_RUN=setInterval(update,1);
+}
 function displayLostScreen(score,ctx){
     //pending fn
+    clearInterval(GAME_RUN);
     document.getElementById('play_again').style.display='block';
+    playArea.render(ct);
+
     //Reset all vars
-    Level=1;
-    GAME_RUN=setInterval(update,1);
+    document.getElementById('play_again').onclick=() =>{
+        // Level=1;
+        // Life=5;
+        // Score=0;
+        // numberOfBulletsAvailable=0;
+        document.getElementById('play_again').style.display='none';
+        // url='/play.html';
+        location.reload();
+        // Reset all vars again(bricks[],obstructions[],balls[],player)
+        // startGame();
+    }
 }
 function displayWinScreen(score,ctx){
     //pending fn
+    clearInterval(GAME_RUN);
     document.getElementById('next_level').style.display='block';
     document.getElementById('next_level').onclick=() =>{
         Level++;
         document.getElementById('next_level').style.display='none';
         //Reset all vars again(bricks[],obstructions[],balls[],player)
-        player=new Paddle();
-        GAME_RUN=setInterval(update,1);
+        startGame();
     }
 }
 function collectibleAction(type){
@@ -516,6 +604,7 @@ function endActiveCollectibleAction(type){
     }
 }
 function update(){
+    
     //timers
     collectibleTimeRemaining-=0.01;
     featureTimeRemaining-=0.01;
@@ -562,11 +651,9 @@ function update(){
     
     //check for game-end
     if(!LivingBricks){
-        clearInterval(GAME_RUN);
         displayWinScreen(Score,ct);
     }
     if(Life==0){
-        clearInterval(GAME_RUN);
         displayLostScreen(Score,ct);
     }
     //most important updates,before return is called by catching part
@@ -615,6 +702,7 @@ function update(){
     }
     // check if balls finished
     if(balls.length==0){
+        ScoreIncrement=1;
         Life--;
         document.getElementById('lifeCounter').innerHTML=`Lives: ${Life}`;
         balls.push(new Ball(new Vector(player.pos.x,player.top-BALL_RADIUS),new Vector(0,0)));
@@ -623,6 +711,7 @@ function update(){
         throwLine.startPosition=balls[0].pos;
         throwLine.angle=0;
     }
+    // console.log(balls[0].velocity);
     //caught function use
     if(caught){
         throwLine.render(ct);
@@ -640,7 +729,8 @@ function update(){
             if(bricks[j].brickLife!=0){
                 // bricks[j].render(ct);
                 if(bricks[j].isBallColliding(balls[i])){
-                    Score++;
+                    Score+=ScoreIncrement;
+                    ScoreIncrement++;
                     document.getElementById('scoreCounter').innerHTML=`Score: ${Score}`;
                     if(bricks[j].brickLife==0){
                         for(let k=0;k<availableCollectibles.length;k++){
@@ -730,7 +820,6 @@ function keyPressed(code){
         document.getElementById('slow_ball_button').disabled=true;
     }
 }
-const GAME_RUN=setInterval(update,1);
 document.onkeydown=(evt)=>keyPressed(evt.key);
 document.getElementById('fast_paddle_button').onclick = ()=>{
     keyPressed('F');
@@ -738,3 +827,8 @@ document.getElementById('fast_paddle_button').onclick = ()=>{
 document.getElementById('slow_ball_button').onclick = ()=>{
     keyPressed('S');
 }
+
+
+
+
+
