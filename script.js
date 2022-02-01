@@ -3,12 +3,12 @@
 // fs = require('fs');
 // var name = 'leaderboard.json';
 // var LEADERBOARD = JSON.parse(fs.readFileSync(name).toString());
+let Pause=false;
 var canvas=document.getElementById("GameCanvas");
 var ct=canvas.getContext("2d");
 // let params = (new URL(url)).searchParams;
 let params = new URLSearchParams(location.search);
 let player_name=(params.get('name'));
-console.log(player_name);
 let Level=1;
 let frame_x=document.getElementById("game_area").offsetWidth;
 let frame_y=document.getElementById("game_area").offsetHeight;
@@ -1217,6 +1217,9 @@ function update(){
     // ct.clearRect(0,0,WINDOW_X,WINDOW_Y);
 }
 function keyPressed(code){
+    if(Pause==true){
+        return;
+    }
     if(code=='w' || code=='W' || code=='ArrowUp' || code==" "){
         if(caught){
             balls[caughtBallIndex].throwTheBall(throwLine);
@@ -1281,8 +1284,34 @@ function keyPressed(code){
 }
 document.onkeydown=(evt)=>keyPressed(evt.key);
 document.getElementById('fast_paddle_button').onclick = ()=>{
+    if(Pause==true){
+        return;
+    }
     keyPressed('F');
 }
 document.getElementById('slow_ball_button').onclick = ()=>{
+    if(Pause==true){
+        return;
+    }
     keyPressed('S');
 }
+document.getElementById('pause').onclick = ()=>{
+    if(Pause==false){
+        clearInterval(GAME_RUN);
+        Pause=true;
+        document.getElementById('pause').innerText='|>'
+    }
+    else if(Pause==true){
+        GAME_RUN=setInterval(update,1);
+        Pause=false;
+        document.getElementById('pause').innerHTML='||';
+    }
+    // console.log("doing")
+}
+document.addEventListener("visibilitychange", (event) => {
+    if(Pause==false){
+        clearInterval(GAME_RUN);
+        Pause=true;
+        document.getElementById('pause').innerText='|>'
+    }
+});

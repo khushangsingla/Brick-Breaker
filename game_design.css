@@ -1,19 +1,24 @@
-
+*{
+    margin: 0;
+    padding: 0;
+}
 #game_area{
     position: relative;
     width:75vw;
     height: 95vh;
     float: left;
+    block-size: inline;
 }
 .scorecard{
+    position: absolute;
     background-color: black;
-    margin-left: 69vw;
-    width: 30vw;
+    right: 0;
+    width: 22vw;
     height: 95vh;
     color: white;
     text-align: left;
     font-size: 1vw;
-    padding-left: 0vw;
+    padding-left: 01vw;
     padding-top: 1vh;
     
 }
@@ -79,4 +84,16 @@
 }
 #play_again:hover{
     background-color: rgb(133, 133, 131);
+}
+#pause{
+    margin: 0;
+    padding: 0;
+    position:absolute;
+    z-index: 1;
+    height: 3vw;
+    width:3vw;
+    left:0;
+    top:0;
+    font-size: 2vw;
+    background-color: chocolate;
 }
