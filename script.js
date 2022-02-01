@@ -964,6 +964,24 @@ function displayWinScreen(score,ctx){
     //pending fn
     clearInterval(GAME_RUN);
     playArea.render(ct);
+    if(Level==5){
+        ct.beginPath();
+        ct.fillStyle='rgb(255,0,0)';
+        ct.font=`${frame_x/10}px Cambria`;
+        ct.fillText(`Congratulations!`,frame_x/6,frame_y/4);
+        ct.closePath();
+        ct.beginPath();
+        ct.fillStyle='rgb(255,0,255)';
+        ct.font=`${frame_x/20}px Cambria`;
+        ct.fillText(`Your Final Score: ${Score}`,frame_x/3.4,frame_y/2);
+        ct.closePath();
+        ct.beginPath();
+        ct.fillStyle='rgb(0,255,255)';
+        ct.font=`${frame_x/24}px Cambria`;
+        ct.fillText(`More Brick Grids Coming Soon...`,frame_x/4,3*frame_y/4);
+        ct.closePath();
+        return;
+    }
     ct.beginPath();
     ct.fillStyle='rgb(255,0,0)';
     ct.font=`${frame_x/10}px Cambria`;
@@ -1268,8 +1286,3 @@ document.getElementById('fast_paddle_button').onclick = ()=>{
 document.getElementById('slow_ball_button').onclick = ()=>{
     keyPressed('S');
 }
-
-
-
-
-
