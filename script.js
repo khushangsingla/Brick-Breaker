@@ -1014,7 +1014,7 @@ function collectibleAction(type){
         activeCollectible=type;
         document.getElementById('activeCollectible').innerHTML='Short Paddle';
         player.shortLength();
-        collectibleTimeRemaining=10;
+        collectibleTimeRemaining=30;
         // setTimeout(endActiveCollectibleAction('L'),10000);
     }
     else if(type=='B'){
@@ -1025,12 +1025,12 @@ function collectibleAction(type){
         activeCollectible=type;
         document.getElementById('activeCollectible').innerHTML='Teleport On';
         wrap=true;
-        collectibleTimeRemaining=10;
+        collectibleTimeRemaining=30;
     }
     else if(type=='R'){
         document.getElementById('activeCollectible').innerHTML='Reverse Key Function';
         activeCollectible=type;
-        collectibleTimeRemaining=10;
+        collectibleTimeRemaining=30;
     }
     else if(type=='C'){
         catchCount+=3;
