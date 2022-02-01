@@ -15,6 +15,17 @@
         h2{
             flex-wrap: wrap;
         }
+        .menu_page{
+        background-color:rgb(78, 224, 250) ;
+        color:black;
+        text-align: left;
+        font-size: 2vw;
+        font-family: 'Arial Narrow Bold', sans-serif;
+        }
+
+        .menu_page:hover{
+        background-color: rgb(255, 251, 0);
+        }
 
     </style>
     <meta charset="UTF-8">
@@ -23,6 +34,10 @@
     <title>Rule Page</title>
 </head>
 <body>
+    <a href="index.html">
+        <input type="submit" name="menu_page" class=menu_page value=" Return to Menu Page">
+    </a>
+
     <h1 id="basic_head">
         Basic Rules :
     </h1>
@@ -31,6 +46,9 @@
         <ul>
             <li>
                 The ball can be shot in any direction desired which is shown by the small red line. 
+            </li>
+            <li>
+                To shoot the ball press "up arrow" or W key.
             </li>
             <li>
                 The direction of the ball can be adjusted by using the "left" and "right" arrows accordingly.
@@ -47,7 +65,21 @@
                 </ol>
             </li>
             <li>
-                Some bricks have more lives than other.(May change this ) 
+                Some bricks have more lives than other.
+            </li>
+            <li>
+                <ol>
+                 <li>
+                    The dark red coloured bricks have a single life.
+                </li>
+                <li>
+                    The Yellow coloured ones have 2 lives.
+                </li>
+                <li>
+                    The black coloured bricks are metal bricks and are indestructable.
+                </li>
+                </ol>
+
             </li>
         </ul>
     </h2>
@@ -63,28 +95,28 @@
             <li>
                 These get activated only when they are collected by the paddle.
             </li>
-          <li> List of Powers:
+          <li> List of Powers:(NOTE: Some powers are active only for 10 seconds)
             <ol>
                 <li>
-                    L Long (Longer Paddle)
+                    L Long (Longer Paddle) *active only for 10 seconds
                 </li>
                 <li>
-                    S Short (Shorter Paddle)
+                    S Short (Shorter Paddle) *active only for 10 seconds
                 </li>
                 <li>
-                    B Bullet (Paddle can shoot 3 bullets)
+                    B Bullet (Paddle can shoot 3 bullets).Press the "up arrow" to shoot bullets. 
                 </li>
                 <li>
-                    T Teleport (Paddle can teleport through wall)
+                    T Teleport (Paddle can teleport through wall) *active only for 10 seconds
                 </li>
                 <li>
-                    R Reverse (The functioning of A(or left arrow) and D(or right arrow) is reversed)
+                    R Reverse (The functioning of A(or left arrow) and D(or right arrow) is reversed) *active only for 10 seconds
                 </li>
                 <li>
                     C Catch (Player can set direction of ball)(3 times)
                 </li>
                 <li>
-                    M Multiple Balls
+                    M Multiple Balls(3 balls are released form the single ball present)
                 </li>
             </ol>
           </li> 
