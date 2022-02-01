@@ -9,7 +9,7 @@ var ct=canvas.getContext("2d");
 let params = new URLSearchParams(location.search);
 let player_name=(params.get('name'));
 console.log(player_name);
-Level=1;
+let Level=1;
 let frame_x=document.getElementById("game_area").offsetWidth;
 let frame_y=document.getElementById("game_area").offsetHeight;
 if(frame_x>1.5*frame_y){frame_x=1.5*frame_y;}
@@ -18,7 +18,8 @@ ct.canvas.width  = frame_x;
 ct.canvas.height = frame_y;
 let UnitUsed=frame_x/100;
 // let YUnit=frame_y/100;
-
+let ball_obs=new Audio('ball_obstruction.mp3');
+let ball_brick=new Audio('ball_brick.mp3')
 //global variables representing various constants of game
 //Window
 const WINDOW_Y=frame_y;
@@ -31,15 +32,15 @@ const BULLET_HEIGHT=0.01*frame_x ;
 const BULLET_WIDTH=0.0075*frame_x ;
 const BULLET_COLOR="rgb(256,0,0)";
 //Brick
-const BRICK_HEIGHT=0.049*frame_x;
-const BRICK_WIDTH=0.099*frame_x;
-const STRONG_BRICK_COLOR='rgb(255,0,0)';
+let BRICK_HEIGHT=0.049*frame_x;
+let BRICK_WIDTH=0.099*frame_x;
+const STRONG_BRICK_COLOR='rgb(180, 180, 8)';
 const WEAK_BRICK_COLOR='rgb(155,0,0)';
 const OBSTRUCTION_COLOR='rgb(30,30,30)';
 //Collectible(Falling)
 const COLLECTIBLE_RADIUS=0.015*frame_x;
 const COLLECTIBLE_COLOR="rgb(256,0,0)";
-const COLLECTIBLE_SPEED=0.002*frame_y;
+const COLLECTIBLE_SPEED=0.001*frame_y;
 const COLLECTIBLE_TYPE_COLOR='rgb(0,0,0)';
 //Paddle
 const PADDLE_HEIGHT=0.02*frame_y;
@@ -64,20 +65,19 @@ const THROW_LINE_COLOR='rgb(255,0,0)';
 let BRICK_GRIDS=[];
 let OBSTRUCTION_GRIDS=[];
 let COLLECTIBLE_GRIDS=[];
-// // Level1
-let LEVEL_1_BRICK_ARRAY=[];
-let LEVEL_1_OBSTRUCTIONS_ARRAY=[];
-let LEVEL_1_COLLECTIBLES_ARRAY=[];
+//Collectible adjustment
+let GOOD_COLLECTIBLE=['L','B','T','C','M','H'];
+let BAD_COLLECTIBLE=['S','R'];
 //Level2
-let LEVEL_2_OBSTRUCTIONS_ARRAY=[];
-let LEVEL_2_COLLECTIBLES_ARRAY=[];
-let LEVEL_2_BRICK_ARRAY=[];
+// let LEVEL_2_OBSTRUCTIONS_ARRAY=[];
+// let LEVEL_2_COLLECTIBLES_ARRAY=[];
+// let LEVEL_2_BRICK_ARRAY=[];
 //Required variables
 let ScoreIncrement=1;
-let bricks=LEVEL_1_BRICK_ARRAY; //array of bricks that can be broken
-let obstructions=LEVEL_1_OBSTRUCTIONS_ARRAY; //array of unbreakable bricks
+let bricks=[]; //array of bricks that can be broken
+let obstructions=[]; //array of unbreakable bricks
 let balls=[]; //array of balls in the game
-let availableCollectibles=LEVEL_1_COLLECTIBLES_ARRAY; //array of collectibles that do exist in the game
+let availableCollectibles=[]; //array of collectibles that do exist in the game
 let fallingCollectibles=[]; //array of collectibles that are released and are falling
 let activeCollectible=null; //if there's an active collectible, it's initial will be stored here
 let collectibleTimeRemaining=0;
@@ -90,9 +90,34 @@ let numberOfBulletsAvailable=0; //this is number of bullets available with playe
 let caught=true; //if the ball is caught by paddle, it is true
 let caughtBallIndex=0;
 let catchCount=0; //this has the number of catch counts available with the player
-let Life=1; //Total life of player
+let Life=5; //Total life of player
 let Score=0; //Total Score
 let wrap=false;
+
+//some useful functions for random allotment
+function getRandInt(s,l){//s inclusive, l exclusive
+    return s+Math.floor(Math.random()*(l-s));
+}
+function getRandomIntegers(count,s,l){
+    let ans=[];
+    for(let i=0;i<count;i++){
+        while(true){
+            let n=getRandInt(s,l);
+            let del=false;
+            for(let j=0;j<ans.length;j++){
+                if(n==ans[j]){
+                    del=true;
+                    break;
+                }
+            }
+            if(!del){
+                ans.push(n);
+                break;
+            }
+        }
+    }
+    return ans;
+}
 //Class for vectors
 class Vector{
     constructor(x,y){
@@ -140,9 +165,7 @@ class Object{
         ctx.closePath();
     }
 }
-
 class StaticObject extends Object{}
-
 class MovingObject extends Object{
     constructor(pos=new Vector(), dmns=new Vector(), color, speed=new Vector()){
         super(pos,dmns,color);
@@ -154,7 +177,6 @@ class MovingObject extends Object{
         this.refreshContents();
     }
 }
-
 class Ball extends MovingObject{
     constructor(pos=new Vector(),speed=new Vector()){
         super(pos,new Vector(2*BALL_RADIUS,2*BALL_RADIUS),BALL_COLOR_OUT,speed);
@@ -290,7 +312,7 @@ class Brick extends StaticObject{
                 // console.log('doing')
                 ctx.beginPath();
                 let grad=ctx.createRadialGradient(this.pos.x,this.pos.y,0,this.pos.x,this.pos.y,Math.max(this.size.x/2,this.size.y/2));
-                grad.addColorStop(0,'rgb(255,100,100)');
+                grad.addColorStop(0,'rgb(220,220,100)');
                 grad.addColorStop(1,this.color);
                 ctx.fillStyle=grad;
                 ctx.fillRect(this.left,this.top,this.size.x,this.size.y);
@@ -299,7 +321,7 @@ class Brick extends StaticObject{
             else{
                 ctx.beginPath();
                 let grad=ctx.createRadialGradient(this.pos.x,this.pos.y,0,this.pos.x,this.pos.y,Math.max(this.size.x/2.0,this.size.y/2.0));
-                grad.addColorStop(0,'rgb(255,170,170)');
+                grad.addColorStop(0,'rgb(220,220,100)');
                 grad.addColorStop(1,this.color);
                 ctx.fillStyle=grad;
                 ctx.fillRect(this.left,this.top,this.size.x,this.size.y);
@@ -448,72 +470,427 @@ class ThrowDirection{
 }
 class Ground{
     render(ctx){
+        // ctx.beginPath();
         ctx.fillStyle=(WINDOW_COLOR);
         ctx.fillRect(0,0,WINDOW_X,WINDOW_Y);
+        // ctx.closePath();
         // console.log("doing");
     }
 }
-//array making for level 1
-for(let i=0;i<9;i++){
-    for(let j=0;j<4;j++){
-        LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*i+10)*UnitUsed),((5*j+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+function prepareLevelGrids(){
+    BRICK_GRIDS=[];
+    OBSTRUCTION_GRIDS=[];
+    COLLECTIBLE_GRIDS=[];
+    let collectibles_to_use=[];
+    let LEVEL_1_BRICK_ARRAY=[];
+    let LEVEL_1_OBSTRUCTIONS_ARRAY=[];
+
+
+
+    //array making for level 1
+    for(let i=0;i<9;i++){
+        for(let j=0;j<4;j++){
+            LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*i+10)*UnitUsed),((5*j+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+        }
     }
-}
-for(let i=2;i<7;i++){
-    LEVEL_1_BRICK_ARRAY[4*i].brickLife=2;
-    LEVEL_1_BRICK_ARRAY[4*i].color=STRONG_BRICK_COLOR;
-}
-LEVEL_1_OBSTRUCTIONS_ARRAY.push(LEVEL_1_BRICK_ARRAY[28],LEVEL_1_BRICK_ARRAY[19],LEVEL_1_BRICK_ARRAY[4]);
-for(let i=0;i<3;i++){
+    for(let i=2;i<7;i++){
+        LEVEL_1_BRICK_ARRAY[4*i].brickLife=2;
+        LEVEL_1_BRICK_ARRAY[4*i].color=STRONG_BRICK_COLOR;
+    }
+    LEVEL_1_OBSTRUCTIONS_ARRAY.push(LEVEL_1_BRICK_ARRAY[28],LEVEL_1_BRICK_ARRAY[19],LEVEL_1_BRICK_ARRAY[4]);
+    for(let i=0;i<3;i++){
+        LEVEL_1_OBSTRUCTIONS_ARRAY[i].color=OBSTRUCTION_COLOR;
+    }
+    LEVEL_1_BRICK_ARRAY.splice(28,1);
+    LEVEL_1_BRICK_ARRAY.splice(19,1);
+    LEVEL_1_BRICK_ARRAY.splice(4,1);
+    // LEVEL_1_COLLECTIBLES_ARRAY.push(new EnclosedCollectible('M',14));
+
+    //
+    // let arr1=getRandomIntegers(3,0,GOOD_COLLECTIBLE.length);
+    // let arr2=getRandInt(0,BAD_COLLECTIBLE);
+    let arr3=getRandomIntegers(4,0,LEVEL_1_BRICK_ARRAY.length);
+    collectibles_to_use.push(new EnclosedCollectible(GOOD_COLLECTIBLE[getRandInt(0,GOOD_COLLECTIBLE.length)],arr3[0]));
+    collectibles_to_use.push(new EnclosedCollectible(GOOD_COLLECTIBLE[getRandInt(0,GOOD_COLLECTIBLE.length)],arr3[1]));
+    collectibles_to_use.push(new EnclosedCollectible(GOOD_COLLECTIBLE[getRandInt(0,GOOD_COLLECTIBLE.length)],arr3[2]));
+    collectibles_to_use.push(new EnclosedCollectible(BAD_COLLECTIBLE[getRandInt(0,BAD_COLLECTIBLE.length)],arr3[3]));
+    BRICK_GRIDS.push(LEVEL_1_BRICK_ARRAY);
+    OBSTRUCTION_GRIDS.push(LEVEL_1_OBSTRUCTIONS_ARRAY);
+    COLLECTIBLE_GRIDS.push(collectibles_to_use);
+    LEVEL_1_BRICK_ARRAY=[];
+    LEVEL_1_OBSTRUCTIONS_ARRAY=[];
+    collectibles_to_use=[];
+    
+    
+    
+    
+    
+    
+    
+    //array making for level 2
+    for(let i=0;i<5;i++){
+        for(let j=0;j<5;j++){
+            LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*i+30)*UnitUsed),((5*j+2.5+10)*UnitUsed)),2,STRONG_BRICK_COLOR));
+        }
+    }
+    LEVEL_1_BRICK_ARRAY[6].brickLife=1;
+    LEVEL_1_BRICK_ARRAY[7].brickLife=1;
+    LEVEL_1_BRICK_ARRAY[12].brickLife=1;
+    LEVEL_1_BRICK_ARRAY[16].brickLife=1;
+    LEVEL_1_BRICK_ARRAY[17].brickLife=1;
+    LEVEL_1_BRICK_ARRAY[10].brickLife=1;
+    LEVEL_1_BRICK_ARRAY[14].brickLife=1;
+    LEVEL_1_BRICK_ARRAY[6].color=WEAK_BRICK_COLOR;
+    LEVEL_1_BRICK_ARRAY[7].color=WEAK_BRICK_COLOR;
+    LEVEL_1_BRICK_ARRAY[12].color=WEAK_BRICK_COLOR;
+    LEVEL_1_BRICK_ARRAY[16].color=WEAK_BRICK_COLOR;
+    LEVEL_1_BRICK_ARRAY[17].color=WEAK_BRICK_COLOR;
+    LEVEL_1_BRICK_ARRAY[10].color=WEAK_BRICK_COLOR;
+    LEVEL_1_BRICK_ARRAY[14].color=WEAK_BRICK_COLOR;
+
+
+    LEVEL_1_OBSTRUCTIONS_ARRAY.push(LEVEL_1_BRICK_ARRAY[0],LEVEL_1_BRICK_ARRAY[1],LEVEL_1_BRICK_ARRAY[2],LEVEL_1_BRICK_ARRAY[3],LEVEL_1_BRICK_ARRAY[4],LEVEL_1_BRICK_ARRAY[9],LEVEL_1_BRICK_ARRAY[19],LEVEL_1_BRICK_ARRAY[20],LEVEL_1_BRICK_ARRAY[21],LEVEL_1_BRICK_ARRAY[22],LEVEL_1_BRICK_ARRAY[23],LEVEL_1_BRICK_ARRAY[24]);
+    for(let i=0;i<12;i++){
+        LEVEL_1_OBSTRUCTIONS_ARRAY[i].color=OBSTRUCTION_COLOR;
+    }
+
+    LEVEL_1_BRICK_ARRAY.splice(24,1);
+    LEVEL_1_BRICK_ARRAY.splice(23,1);
+    LEVEL_1_BRICK_ARRAY.splice(22,1);
+    LEVEL_1_BRICK_ARRAY.splice(21,1);
+    LEVEL_1_BRICK_ARRAY.splice(20,1);
+    LEVEL_1_BRICK_ARRAY.splice(19,1);
+    LEVEL_1_BRICK_ARRAY.splice(9,1);
+    LEVEL_1_BRICK_ARRAY.splice(4,1);
+    LEVEL_1_BRICK_ARRAY.splice(3,1);
+    LEVEL_1_BRICK_ARRAY.splice(2,1);
+    LEVEL_1_BRICK_ARRAY.splice(1,1);
+    LEVEL_1_BRICK_ARRAY.splice(0,1);
+    arr1=getRandomIntegers(2,0,GOOD_COLLECTIBLE.length);
+    arr2=getRandInt(0,BAD_COLLECTIBLE);
+    arr3=getRandomIntegers(3,0,LEVEL_1_BRICK_ARRAY.length);
+    collectibles_to_use.push(new EnclosedCollectible(GOOD_COLLECTIBLE[getRandInt(0,GOOD_COLLECTIBLE.length)],arr3[0]));
+    collectibles_to_use.push(new EnclosedCollectible(GOOD_COLLECTIBLE[getRandInt(0,GOOD_COLLECTIBLE.length)],arr3[1]));
+    collectibles_to_use.push(new EnclosedCollectible(BAD_COLLECTIBLE[getRandInt(0,BAD_COLLECTIBLE.length)],arr3[2]));
+    COLLECTIBLE_GRIDS.push(collectibles_to_use);
+    BRICK_GRIDS.push(LEVEL_1_BRICK_ARRAY);
+    OBSTRUCTION_GRIDS.push(LEVEL_1_OBSTRUCTIONS_ARRAY);
+    collectibles_to_use=[];
+    LEVEL_1_OBSTRUCTIONS_ARRAY=[];
+    LEVEL_1_BRICK_ARRAY=[];
+    
+    
+    
+    
+    
+    
+    
+    //level 3 grids
+    BRICK_HEIGHT=0.0245*frame_x;
+    BRICK_WIDTH=0.049*frame_x;
+    UnitUsed=frame_x/200;
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*4+61)*UnitUsed),((5*0+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+             
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*3.5+61)*UnitUsed),((5*1+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*4.5+61)*UnitUsed),((5*1+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+   
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*3+61)*UnitUsed),((5*2+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*4+61)*UnitUsed),((5*2+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*5+61)*UnitUsed),((5*2+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+   
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*2.5+61)*UnitUsed),((5*3+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*3.5+61)*UnitUsed),((5*3+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*4.5+61)*UnitUsed),((5*3+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*5.5+61)*UnitUsed),((5*3+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*2+61)*UnitUsed),((5*4+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*3+61)*UnitUsed),((5*4+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*4+61)*UnitUsed),((5*4+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*5+61)*UnitUsed),((5*4+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*6+61)*UnitUsed),((5*4+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*1.5+61)*UnitUsed),((5*5+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*2.5+61)*UnitUsed),((5*5+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*3.5+61)*UnitUsed),((5*5+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*4.5+61)*UnitUsed),((5*5+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*5.5+61)*UnitUsed),((5*5+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*6.5+61)*UnitUsed),((5*5+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+
+    //2life bricks
+    for(let i=0;i<4;i++){
+    for(let j=0;j<4;j++){
+        LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*(2.5+i)+61)*UnitUsed),((5*(6+j)+2.5+10)*UnitUsed)),1,STRONG_BRICK_COLOR)); 
+    }  
+    }
+    LEVEL_1_BRICK_ARRAY[21].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[22].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[23].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[24].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[25].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[28].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[29].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[32].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[33].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[34].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[35].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[36].brickLife=2;
+
+
+    LEVEL_1_OBSTRUCTIONS_ARRAY.push(LEVEL_1_BRICK_ARRAY[26],LEVEL_1_BRICK_ARRAY[27],LEVEL_1_BRICK_ARRAY[30],LEVEL_1_BRICK_ARRAY[31]);
+    for(let i=0;i<4;i++){
     LEVEL_1_OBSTRUCTIONS_ARRAY[i].color=OBSTRUCTION_COLOR;
-}
-LEVEL_1_BRICK_ARRAY.splice(28,1);
-LEVEL_1_BRICK_ARRAY.splice(19,1);
-LEVEL_1_BRICK_ARRAY.splice(4,1);
-LEVEL_1_COLLECTIBLES_ARRAY.push(new EnclosedCollectible('M',14));
-//array making for level 2
-for(let i=0;i<9;i++){
-    for(let j=0;j<4;j++){
-        LEVEL_2_BRICK_ARRAY.push(new Brick(new Vector(((10*i+10)*UnitUsed),((5*j+2.5+10)*UnitUsed)),2,STRONG_BRICK_COLOR));
     }
+    LEVEL_1_BRICK_ARRAY.splice(31,1);
+    LEVEL_1_BRICK_ARRAY.splice(30,1);
+    LEVEL_1_BRICK_ARRAY.splice(27,1);
+    LEVEL_1_BRICK_ARRAY.splice(26,1);
+    // arr1=getRandomIntegers(3,0,GOOD_COLLECTIBLE.length);
+    arr3=getRandomIntegers(4,0,LEVEL_1_BRICK_ARRAY.length);
+    collectibles_to_use.push(new EnclosedCollectible(GOOD_COLLECTIBLE[getRandInt(0,GOOD_COLLECTIBLE.length)],arr3[0]));
+    collectibles_to_use.push(new EnclosedCollectible(GOOD_COLLECTIBLE[getRandInt(0,GOOD_COLLECTIBLE.length)],arr3[1]));
+    collectibles_to_use.push(new EnclosedCollectible(GOOD_COLLECTIBLE[getRandInt(0,GOOD_COLLECTIBLE.length)],arr3[2]));
+    collectibles_to_use.push(new EnclosedCollectible(BAD_COLLECTIBLE[getRandInt(0,BAD_COLLECTIBLE.length)],arr3[3]));
+    COLLECTIBLE_GRIDS.push(collectibles_to_use);
+    BRICK_GRIDS.push(LEVEL_1_BRICK_ARRAY);
+    OBSTRUCTION_GRIDS.push(LEVEL_1_OBSTRUCTIONS_ARRAY);
+    collectibles_to_use=[];
+    LEVEL_1_BRICK_ARRAY=[];
+    LEVEL_1_OBSTRUCTIONS_ARRAY=[];
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    //Level-4
+    BRICK_HEIGHT=0.0245*frame_x;
+    BRICK_WIDTH=0.0245*frame_x;
+    UnitUsed=frame_x/100;
+
+    for(let i=0;i<5;i++){
+        LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((2.5*i+45)*UnitUsed),((2.5*0+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    }
+    for(let i=0;i<7;i++){
+        LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((2.5*(i-1)+45)*UnitUsed),((2.5*1+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    }
+    for(let i=0;i<9;i++){
+        LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((2.5*(i-2)+45)*UnitUsed),((2.5*2+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    }
+    for(let j=3;j<6;j++){
+        for(let i=0;i<11;i++)
+        {
+            LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((2.5*(i-3)+45)*UnitUsed),((2.5*j+2.5+10)*UnitUsed)),2,STRONG_BRICK_COLOR));
+        }
+    }
+    for(let i=0;i<9;i++){
+        LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((2.5*(i-2)+45)*UnitUsed),((2.5*6+2.5+10)*UnitUsed)),2,STRONG_BRICK_COLOR));
+    }
+    for(let i=0;i<7;i++){
+        LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((2.5*(i-1)+45)*UnitUsed),((2.5*7+2.5+10)*UnitUsed)),2,STRONG_BRICK_COLOR));
+    }
+    for(let i=0;i<5;i++){
+        LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((2.5*i+45)*UnitUsed),((2.5*8+2.5+10)*UnitUsed)),2,STRONG_BRICK_COLOR));
+    }
+    LEVEL_1_OBSTRUCTIONS_ARRAY.push(LEVEL_1_BRICK_ARRAY[12],LEVEL_1_BRICK_ARRAY[13],LEVEL_1_BRICK_ARRAY[14],LEVEL_1_BRICK_ARRAY[15],LEVEL_1_BRICK_ARRAY[16],LEVEL_1_BRICK_ARRAY[17],LEVEL_1_BRICK_ARRAY[18],LEVEL_1_BRICK_ARRAY[19],LEVEL_1_BRICK_ARRAY[20],LEVEL_1_BRICK_ARRAY[24],LEVEL_1_BRICK_ARRAY[27],LEVEL_1_BRICK_ARRAY[46],LEVEL_1_BRICK_ARRAY[50],LEVEL_1_BRICK_ARRAY[57],LEVEL_1_BRICK_ARRAY[58],LEVEL_1_BRICK_ARRAY[59]);
+
+    for(let i=0;i<16;i++){
+        LEVEL_1_OBSTRUCTIONS_ARRAY[i].color=OBSTRUCTION_COLOR;
+    }
+    LEVEL_1_BRICK_ARRAY.splice(59,1);
+    LEVEL_1_BRICK_ARRAY.splice(58,1);
+    LEVEL_1_BRICK_ARRAY.splice(57,1);
+    LEVEL_1_BRICK_ARRAY.splice(50,1);
+    LEVEL_1_BRICK_ARRAY.splice(46,1);
+    LEVEL_1_BRICK_ARRAY.splice(28,1);
+    LEVEL_1_BRICK_ARRAY.splice(27,1);
+    LEVEL_1_BRICK_ARRAY.splice(25,1);
+    LEVEL_1_BRICK_ARRAY.splice(24,1);
+    LEVEL_1_BRICK_ARRAY.splice(20,1);
+    LEVEL_1_BRICK_ARRAY.splice(19,1);
+    LEVEL_1_BRICK_ARRAY.splice(18,1);
+    LEVEL_1_BRICK_ARRAY.splice(17,1);
+    LEVEL_1_BRICK_ARRAY.splice(16,1);
+    LEVEL_1_BRICK_ARRAY.splice(15,1);
+    LEVEL_1_BRICK_ARRAY.splice(14,1);
+    // arr1=getRandomIntegers(5,0,GOOD_COLLECTIBLE.length);
+    arr3=getRandomIntegers(7,0,LEVEL_1_BRICK_ARRAY.length);
+    collectibles_to_use.push(new EnclosedCollectible(GOOD_COLLECTIBLE[getRandInt(0,GOOD_COLLECTIBLE.length)],arr3[0]));
+    collectibles_to_use.push(new EnclosedCollectible(GOOD_COLLECTIBLE[getRandInt(0,GOOD_COLLECTIBLE.length)],arr3[1]));
+    collectibles_to_use.push(new EnclosedCollectible(GOOD_COLLECTIBLE[getRandInt(0,GOOD_COLLECTIBLE.length)],arr3[2]));
+    collectibles_to_use.push(new EnclosedCollectible(GOOD_COLLECTIBLE[getRandInt(0,GOOD_COLLECTIBLE.length)],arr3[3]));
+    collectibles_to_use.push(new EnclosedCollectible(GOOD_COLLECTIBLE[getRandInt(0,GOOD_COLLECTIBLE.length)],arr3[4]));
+    collectibles_to_use.push(new EnclosedCollectible(BAD_COLLECTIBLE[getRandInt(0,BAD_COLLECTIBLE.length)],arr3[5]));
+    collectibles_to_use.push(new EnclosedCollectible(BAD_COLLECTIBLE[getRandInt(0,BAD_COLLECTIBLE.length)],arr3[6]));
+    COLLECTIBLE_GRIDS.push(collectibles_to_use);
+    BRICK_GRIDS.push(LEVEL_1_BRICK_ARRAY);
+    OBSTRUCTION_GRIDS.push(LEVEL_1_OBSTRUCTIONS_ARRAY);
+    collectibles_to_use=[];
+    LEVEL_1_BRICK_ARRAY=[];
+    LEVEL_1_OBSTRUCTIONS_ARRAY=[];
+
+
+    
+    
+    
+    
+    
+    
+    
+    //Level-5
+    BRICK_HEIGHT=0.0245*frame_x;
+    BRICK_WIDTH=0.049*frame_x;
+    UnitUsed=frame_x/200;
+
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*4+61)*UnitUsed),((5*0+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+                
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*3.5+61)*UnitUsed),((5*1+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*4.5+61)*UnitUsed),((5*1+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*3+61)*UnitUsed),((5*2+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*4+61)*UnitUsed),((5*2+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*5+61)*UnitUsed),((5*2+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*2.5+61)*UnitUsed),((5*3+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*3.5+61)*UnitUsed),((5*3+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*4.5+61)*UnitUsed),((5*3+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*5.5+61)*UnitUsed),((5*3+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*2+61)*UnitUsed),((5*4+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*3+61)*UnitUsed),((5*4+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*4+61)*UnitUsed),((5*4+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*5+61)*UnitUsed),((5*4+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*6+61)*UnitUsed),((5*4+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*1.5+61)*UnitUsed),((5*5+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*2.5+61)*UnitUsed),((5*5+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*3.5+61)*UnitUsed),((5*5+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*4.5+61)*UnitUsed),((5*5+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*5.5+61)*UnitUsed),((5*5+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*6.5+61)*UnitUsed),((5*5+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR));
+
+
+
+    //2life bricks
+    for(let i=0;i<4;i++){
+    for(let j=0;j<4;j++){
+    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*(2.5+i)+61)*UnitUsed),((5*(6+j)+2.5+10)*UnitUsed)),1,STRONG_BRICK_COLOR)); 
+    }  
+    }
+    LEVEL_1_BRICK_ARRAY[21].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[22].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[23].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[24].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[25].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[28].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[29].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[32].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[33].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[34].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[35].brickLife=2;
+    LEVEL_1_BRICK_ARRAY[36].brickLife=2;
+
+    //basement
+    for(let j=0;j<2;j++){
+        for(let i=0;i<16;i++){
+        LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*(2.5+i-6)+61)*UnitUsed),((5*(10+j)+2.5+10)*UnitUsed)),1,WEAK_BRICK_COLOR)); 
+        }  
+        }
+
+    for(let i=0;i<4;i++){
+        for(let j=0;j<4;j++){
+                    LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*(2.5+i-6)+61)*UnitUsed),((5*(6+j)+2.5+10)*UnitUsed)),2,STRONG_BRICK_COLOR)); 
+        }  
+        }
+    //top stones
+        LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*(2.5+0-0.5-6)+61)*UnitUsed),((5*(6-1)+2.5+10)*UnitUsed)),2,STRONG_BRICK_COLOR));
+        LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*(2.5+0+1.5-6)+61)*UnitUsed),((5*(6-1)+2.5+10)*UnitUsed)),2,STRONG_BRICK_COLOR));
+        LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*(2.5+0+3.5-6)+61)*UnitUsed),((5*(6-1)+2.5+10)*UnitUsed)),2,STRONG_BRICK_COLOR));
+
+    for(let i=0;i<4;i++){
+        for(let j=0;j<4;j++){
+        LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*(2.5+i+6)+61)*UnitUsed),((5*(6+j)+2.5+10)*UnitUsed)),2,STRONG_BRICK_COLOR)); 
+        }  
+        }    
+
+        LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*(2.5+0-0.5+6)+61)*UnitUsed),((5*(6-1)+2.5+10)*UnitUsed)),2,STRONG_BRICK_COLOR));
+        LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*(2.5+0+1.5+6)+61)*UnitUsed),((5*(6-1)+2.5+10)*UnitUsed)),2,STRONG_BRICK_COLOR));
+        LEVEL_1_BRICK_ARRAY.push(new Brick(new Vector(((10*(2.5+0+3.5+6)+61)*UnitUsed),((5*(6-1)+2.5+10)*UnitUsed)),2,STRONG_BRICK_COLOR));
+
+        LEVEL_1_OBSTRUCTIONS_ARRAY.push(LEVEL_1_BRICK_ARRAY[26],LEVEL_1_BRICK_ARRAY[27],LEVEL_1_BRICK_ARRAY[30],LEVEL_1_BRICK_ARRAY[31],LEVEL_1_BRICK_ARRAY[74],LEVEL_1_BRICK_ARRAY[75],LEVEL_1_BRICK_ARRAY[78],LEVEL_1_BRICK_ARRAY[79],LEVEL_1_BRICK_ARRAY[93],LEVEL_1_BRICK_ARRAY[94],LEVEL_1_BRICK_ARRAY[97],LEVEL_1_BRICK_ARRAY[98]);
+        for(let i=0;i<12;i++){
+        LEVEL_1_OBSTRUCTIONS_ARRAY[i].color=OBSTRUCTION_COLOR;
+        }
+
+        
+    LEVEL_1_BRICK_ARRAY.splice(98,1);
+    LEVEL_1_BRICK_ARRAY.splice(97,1);
+    LEVEL_1_BRICK_ARRAY.splice(94,1);
+    LEVEL_1_BRICK_ARRAY.splice(93,1);
+    LEVEL_1_BRICK_ARRAY.splice(79,1);
+    LEVEL_1_BRICK_ARRAY.splice(78,1);
+    LEVEL_1_BRICK_ARRAY.splice(75,1);
+    LEVEL_1_BRICK_ARRAY.splice(74,1);
+    LEVEL_1_BRICK_ARRAY.splice(31,1);
+    LEVEL_1_BRICK_ARRAY.splice(30,1);
+    LEVEL_1_BRICK_ARRAY.splice(27,1);
+    LEVEL_1_BRICK_ARRAY.splice(26,1);
+    arr3=getRandomIntegers(10,0,LEVEL_1_BRICK_ARRAY.length);
+    for(let i=0;i<7;i++){
+        collectibles_to_use.push(new EnclosedCollectible(GOOD_COLLECTIBLE[getRandInt(0,GOOD_COLLECTIBLE.length)],arr3[i]));
+    }
+    for(let i=7;i<10;i++){
+        collectibles_to_use.push(new EnclosedCollectible(BAD_COLLECTIBLE[getRandInt(0,2)],arr3[i]));
+    }
+    COLLECTIBLE_GRIDS.push(collectibles_to_use);
+    BRICK_GRIDS.push(LEVEL_1_BRICK_ARRAY);
+    OBSTRUCTION_GRIDS.push(LEVEL_1_OBSTRUCTIONS_ARRAY);
+    collectibles_to_use=[];
+    LEVEL_1_BRICK_ARRAY=[];
+    LEVEL_1_OBSTRUCTIONS_ARRAY=[];
 }
-for(let i=2;i<7;i++){
-    LEVEL_2_BRICK_ARRAY[4*i].brickLife=1;
-    LEVEL_2_BRICK_ARRAY[4*i].color=WEAK_BRICK_COLOR;
-}
-LEVEL_2_OBSTRUCTIONS_ARRAY.push(LEVEL_2_BRICK_ARRAY[28],LEVEL_2_BRICK_ARRAY[19],LEVEL_2_BRICK_ARRAY[4]);
-for(let i=0;i<3;i++){
-    LEVEL_2_OBSTRUCTIONS_ARRAY[i].color=OBSTRUCTION_COLOR;
-}
-LEVEL_2_BRICK_ARRAY.splice(28,1);
-LEVEL_2_BRICK_ARRAY.splice(19,1);
-LEVEL_2_BRICK_ARRAY.splice(4,1);
-//
-BRICK_GRIDS.push(LEVEL_1_BRICK_ARRAY,LEVEL_2_BRICK_ARRAY);
-OBSTRUCTION_GRIDS.push(LEVEL_1_OBSTRUCTIONS_ARRAY,LEVEL_2_OBSTRUCTIONS_ARRAY);
+//plan to allot collectibles
+
 //initial setting up
 document.getElementById('lifeCounter').innerHTML=`Lives: ${Life}`;
 document.getElementById('scoreCounter').innerHTML=`Score: ${Score}`;
 document.getElementById('bulletCounter').innerHTML=`Number of Bullets: ${numberOfBulletsAvailable}`;
+prepareLevelGrids();
 let playArea=new Ground();
+bricks=BRICK_GRIDS[0];
+obstructions=OBSTRUCTION_GRIDS[0];
+availableCollectibles=COLLECTIBLE_GRIDS[0];
 playArea.render(ct);
 let player=new Paddle();
 balls.push(new Ball(new Vector(player.pos.x,player.top-BALL_RADIUS),new Vector(0,0)))
 let throwLine=new ThrowDirection(balls[0].pos);
 var GAME_RUN=setInterval(update,1);
 // testing objects
-// bricks.push(new Brick(new Vector(frame_x/2,3*frame_y/4),2,STRONG_BRICK_COLOR));//for testing
+// bricks.push(new Brick(new Vector(frame_x/2,3*frame_y/4),1,STRONG_BRICK_COLOR));//for testing
 // bricks.push(new Brick(new Vector(frame_x/4,frame_y/4),2,STRONG_BRICK_COLOR));//for testing
 // obstructions.push(new Brick(new Vector(3*frame_x/4,frame_y/4),2,OBSTRUCTION_COLOR));//for testing
 // availableCollectibles.push(new EnclosedCollectible('B',0));//for testing
 function startGame(){
+    // if(Level==3){
+    //     BRICK_HEIGHT=0.0245*frame_x;
+    //     BRICK_WIDTH=0.049*frame_x;
+    //     UnitUsed=frame_x/200;
+    // }
+    // if(Level==4){
+    //     BRICK_HEIGHT=0.0245*frame_x;
+    //     BRICK_WIDTH=0.0245*frame_x;
+    // }
+    document.getElementById('lifeCounter').innerHTML=`Lives: ${Life}`;
+    document.getElementById('scoreCounter').innerHTML=`Score: ${Score}`;
+    document.getElementById('bulletCounter').innerHTML=`Number of Bullets: ${numberOfBulletsAvailable}`;
     ScoreIncrement=1;
     player=new Paddle();
     bricks=BRICK_GRIDS[Level-1];
     obstructions=OBSTRUCTION_GRIDS[Level-1];
-    Collectibles=COLLECTIBLE_GRIDS[Level-1];
+    availableCollectibles=COLLECTIBLE_GRIDS[Level-1];
     balls=[new Ball(new Vector(player.pos.x,player.top-BALL_RADIUS),new Vector(0,0))];
-    availableCollectibles=[];
     fallingCollectibles=[];
     activeCollectible=null;
     collectibleTimeRemaining=0;
@@ -529,63 +906,56 @@ function startGame(){
     GAME_RUN=setInterval(update,1);
 }
 function displayLostScreen(score,ctx){
-    //pending fn
+    
     clearInterval(GAME_RUN);
-    document.getElementById('play_again').style.display='block';
     playArea.render(ct);
-    fetch('leaderboard.json').then((response)=>{
-        response.text().then((text)=>{
-            let LEADERBOARD=JSON.parse(text);
-            if(Score>=LEADERBOARD["5"]){
-                LEADERBOARD["5"]={player_name:`${Score}`};
-                if(Score>=LEADERBOARD["4"]){
-                    LEADERBOARD["5"]=LEADERBOARD["4"];
-                    LEADERBOARD["4"]={player_name:`${Score}`};
-                    if(Score>=LEADERBOARD["3"]){
-                        LEADERBOARD["4"]=LEADERBOARD["3"];
-                        LEADERBOARD["3"]={player_name:`${Score}`};
-                        if(Score>=LEADERBOARD["2"]){
-                            LEADERBOARD["3"]=LEADERBOARD[2];
-                            LEADERBOARD["2"]={player_name:`${Score}`};
-                            if(Score>=LEADERBOARD["1"]){
-                                LEADERBOARD["2"]=LEADERBOARD["1"];
-                                LEADERBOARD["1"]={player_name:`${Score}`};
-                            }
-                        }
-                    }
-                }
-            }        
-        })
-    })
-    // if(Score>=LEADERBOARD["5"]){
-    //     LEADERBOARD["5"]={player_name:`${Score}`};
-    //     if(Score>=LEADERBOARD["4"]){
-    //         LEADERBOARD["5"]=LEADERBOARD["4"];
-    //         LEADERBOARD["4"]={player_name:`${Score}`};
-    //         if(Score>=LEADERBOARD["3"]){
-    //             LEADERBOARD["4"]=LEADERBOARD["3"];
-    //             LEADERBOARD["3"]={player_name:`${Score}`};
-    //             if(Score>=LEADERBOARD["2"]){
-    //                 LEADERBOARD["3"]=LEADERBOARD[2];
-    //                 LEADERBOARD["2"]={player_name:`${Score}`};
-    //                 if(Score>=LEADERBOARD["1"]){
-    //                     LEADERBOARD["2"]=LEADERBOARD["1"];
-    //                     LEADERBOARD["1"]={player_name:`${Score}`};
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-    // fs.writeFileSync(name,JSON.stringify(LEADERBOARD));
-    //Reset all vars
+    ct.beginPath();
+    ct.fillStyle='rgb(255,0,0)';
+    ct.font=`${frame_x/10}px Cambria`;
+    ct.fillText(`Game Over`,frame_x/4,frame_y/3);
+    ct.closePath();
+    ct.beginPath();
+    ct.fillStyle='rgb(255,0,255)';
+    ct.font=`${frame_x/20}px Cambria`;
+    ct.fillText(`Total Score: ${Score}`,frame_x/3,2*frame_y/3);
+    ct.closePath();
+    document.getElementById('play_again').style.display='block';
     document.getElementById('play_again').onclick=() =>{
-        // Level=1;
-        // Life=5;
-        // Score=0;
-        // numberOfBulletsAvailable=0;
+    
+        if(Level==1){
+            BRICK_HEIGHT=0.049*frame_x;
+            BRICK_WIDTH=0.099*frame_x;
+            UnitUsed=frame_x/100;
+        }
+        if(Level==2){
+            BRICK_HEIGHT=0.049*frame_x;
+            BRICK_WIDTH=0.099*frame_x;
+            UnitUsed=frame_x/100;
+        }
+        if(Level==3){
+            BRICK_HEIGHT=0.0245*frame_x;
+            BRICK_WIDTH=0.049*frame_x;
+            UnitUsed=frame_x/200;
+        }
+        if(Level==4){
+            BRICK_HEIGHT=0.0245*frame_x;
+            BRICK_WIDTH=0.0245*frame_x;
+            UnitUsed=frame_x/100;
+        }
+        if(Level==5){
+            BRICK_HEIGHT=0.0245*frame_x;
+            BRICK_WIDTH=0.049*frame_x;
+            UnitUsed=frame_x/200;
+        }
+        prepareLevelGrids();
+        document.getElementById('slow_ball_button').disabled=false;
+        document.getElementById('fast_paddle_button').disabled=false;
+        Life=5;
+        Score=0;
+        numberOfBulletsAvailable=0;
         document.getElementById('play_again').style.display='none';
         // url='/play.html';
-        location.reload();
+        startGame();
         // Reset all vars again(bricks[],obstructions[],balls[],player)
         // startGame();
     }
@@ -593,9 +963,22 @@ function displayLostScreen(score,ctx){
 function displayWinScreen(score,ctx){
     //pending fn
     clearInterval(GAME_RUN);
+    playArea.render(ct);
+    ct.beginPath();
+    ct.fillStyle='rgb(255,0,0)';
+    ct.font=`${frame_x/10}px Cambria`;
+    ct.fillText(`Congratulations!`,frame_x/6,frame_y/3);
+    ct.closePath();
+    ct.beginPath();
+    ct.fillStyle='rgb(255,0,255)';
+    ct.font=`${frame_x/20}px Cambria`;
+    ct.fillText(`You Completed Level-${Level}`,frame_x/3.4,2*frame_y/3);
+    ct.closePath();
     document.getElementById('next_level').style.display='block';
     document.getElementById('next_level').onclick=() =>{
         Level++;
+        document.getElementById('slow_ball_button').disabled=false;
+        document.getElementById('fast_paddle_button').disabled=false;
         document.getElementById('next_level').style.display='none';
         //Reset all vars again(bricks[],obstructions[],balls[],player)
         startGame();
@@ -642,6 +1025,7 @@ function collectibleAction(type){
     }
     else if(type=='H'){
         Life++;
+        document.getElementById('lifeCounter').innerHTML=`Lives: ${Life}`;
     }
 }
 function endActiveCollectibleAction(type){
@@ -657,6 +1041,10 @@ function endActiveCollectibleAction(type){
 }
 function update(){
     
+    if(Life==0){
+        displayLostScreen(Score,ct);
+        return;
+    }
     //timers
     collectibleTimeRemaining-=0.01;
     featureTimeRemaining-=0.01;
@@ -704,9 +1092,7 @@ function update(){
     //check for game-end
     if(!LivingBricks){
         displayWinScreen(Score,ct);
-    }
-    if(Life==0){
-        displayLostScreen(Score,ct);
+        return;
     }
     //most important updates,before return is called by catching part
     for(let i=0;i<activeBullets.length;i++){
@@ -781,6 +1167,7 @@ function update(){
             if(bricks[j].brickLife!=0){
                 // bricks[j].render(ct);
                 if(bricks[j].isBallColliding(balls[i])){
+                    ball_brick.play();
                     Score+=ScoreIncrement;
                     ScoreIncrement++;
                     document.getElementById('scoreCounter').innerHTML=`Score: ${Score}`;
@@ -797,7 +1184,9 @@ function update(){
             }
         }
         for(let j=0;j<obstructions.length;j++){
-            obstructions[j].isBallColliding(balls[i]);
+            if(obstructions[j].isBallColliding(balls[i])){
+                ball_obs.play();
+            }
         }
         balls[i].updatePos();
     }
@@ -810,7 +1199,7 @@ function update(){
     // ct.clearRect(0,0,WINDOW_X,WINDOW_Y);
 }
 function keyPressed(code){
-    if(code=='w' || code=='W' || code=='ArrowUp'){
+    if(code=='w' || code=='W' || code=='ArrowUp' || code==" "){
         if(caught){
             balls[caughtBallIndex].throwTheBall(throwLine);
         }
